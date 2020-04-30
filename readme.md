@@ -14,7 +14,7 @@ composer require s00d/onlinesim-api
 ## Basic Usage
 
 ```php
-use App\Classes\Onlinesim\OnlineSimApi;
+use s00d\OnlineSimApi\OnlineSimApi;
 ...
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 ```

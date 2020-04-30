@@ -35,7 +35,7 @@ class OnlineSimApi
      * @throws RequestError
      */
     public function balance() {
-        return $this->request->send(__FUNCTION__, [], 'GET');
+        return $this->request->send('getBalance', [], 'GET');
     }
 
     /**

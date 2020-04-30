@@ -64,7 +64,7 @@ class GetRent extends OnlineSimApi
             'tzid' => $tzid,
         ];
 
-        return $this->request->send('rent/'.__FUNCTION__, $data, 'GET');
+        return $this->request->send('rent/portReload', $data, 'GET');
     }
 
     /**

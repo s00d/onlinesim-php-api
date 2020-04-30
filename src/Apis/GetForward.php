@@ -102,7 +102,7 @@ class GetForward extends OnlineSimApi
             'page' => $page,
             'sort' => $sort,
         ];
-        return $this->request->send('__FUNCTION__', $data, 'GET');
+        return $this->request->send('forwardingList', $data, 'GET');
     }
 
     /**
@@ -172,7 +172,7 @@ class GetForward extends OnlineSimApi
             'id' => $tzid,
         ];
 
-        return $this->request->send(__FUNCTION__, $data, 'GET');
+        return $this->request->send('getForwardPaymentsList', $data, 'GET');
     }
 
 }
