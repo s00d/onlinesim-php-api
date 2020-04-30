@@ -1,0 +1,22 @@
+{
+    "name": "s00d/onlinesim-api",
+    "description": "php onlinesim api client",
+    "keywords": ["onlinesim", "api", "client"],
+    "type": "library",
+    "license": "MIT",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "s00d",
+            "email": "Virus191288@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "s00d\\OnlineSimApi\\": "src/"
+        }
+    }
+}
