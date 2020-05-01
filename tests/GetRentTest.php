@@ -49,9 +49,9 @@ class GetRentTest extends TestCase
 
     public function testTariffs()
     {
-//        $data = $this->request->rent()->tariffs();
-//        $this->assertInternalType('array', $data->toArray());
-//        $this->assertArrayHasKey('code', $data->first()->toArray());
+        $data = $this->request->rent()->tariffs();
+        $this->assertInternalType('array', $data->toArray());
+        $this->assertArrayHasKey('code', $data->first()->toArray());
     }
 
     public function testExtend()
