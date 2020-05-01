@@ -97,7 +97,7 @@ $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->free();
 var_dump($getter->getList());
 var_dump($getter->getPhoneList(7));
-var_dump($getter->getMessageList(11111));
+var_dump($getter->getMessageList(91111...));
 ```
 
 
