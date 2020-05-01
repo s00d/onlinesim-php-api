@@ -1,4 +1,4 @@
-# GHR
+# Onlinesim API
 
 [packagist](https://packagist.org/packages/s00d/onlinesim-api)
 
