@@ -29,22 +29,22 @@ dev_id | your dev_id, not require
 ### apis - GetUser
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
-var_dump($request->user()->balance());
+var_dump($request->user()->balance()->toArray());
 ```
 
 ### apis - GetNumber
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->numbers();
-var_dump($getter->tariffs());
+var_dump($getter->tariffs()->toArray());
 $res = $getter->get('3223');
 var_dump($res);
-$res = $getter->state();
+$res = $getter->state()->toArray();
 // or
-$res = $getter->stateOne($res['tzid']);
+$res = $getter->stateOne($res->tzid)->toArray();
 var_dump($res);
 ...
-$res = $getter->close($res['tzid']);
+$res = $getter->close($res->tzid)->toArray();
 
 ```
 
@@ -56,12 +56,14 @@ $res = $getter->get(); // get new number
 var_dump($res);
 $res = $getter->state();
 // or 
-$res = $getter->stateOne($res['tzid']);
+$res = $getter->stateOne($res->tzid)->toArray();
 var_dump($res);
 ...
-$res = $getter->forwardingList($res['tzid']);
+$res = $getter->forwardingList()->first();
 ...
-$res = $getter->close($res['tzid']);
+$res = $getter->callList($res->tzid)->toArray();
+...
+$res = $getter->close($res->tzid)->toArray();
 ```
 
 ### apis - GetProxy
@@ -70,9 +72,9 @@ $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->proxy();
 $res = $getter->get();
 var_dump($res);
-$res = $getter->state();
+$res = $getter->state()->toArray();
 // or 
-$res = $getter->stateOne($res['tzid']);
+$res = $getter->stateOne($res->tzid)->toArray();
 var_dump($res);
 ```
 
@@ -80,24 +82,24 @@ var_dump($res);
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->rent();
-var_dump($getter->tariffs());
+var_dump($getter->tariffs()->toArray());
 $res = $getter->get();
 var_dump($res);
-$res = $getter->state();
+$res = $getter->state()->toArray();
 // or 
-$res = $getter->stateOne($res['tzid']);
+$res = $getter->stateOne($res->tzid)->toArray();
 var_dump($res);
 ...
-$res = $getter->close($res['tzid']);
+$res = $getter->close($res->tzid)->toArray();
 ```
 
 ### apis - GetFree
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->free();
-var_dump($getter->getList());
-var_dump($getter->getPhoneList(7));
-var_dump($getter->getMessageList(91111...));
+var_dump($getter->getList()->toArray());
+var_dump($getter->getPhoneList(7)->toArray());
+var_dump($getter->getMessageList(91111...)->toArray());
 ```
 
 
