@@ -14,9 +14,30 @@
     "require": {
         "php": ">=5.5.9"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^5",
+        "vlucas/phpdotenv": "^4.1",
+        "larapack/dd": "1.*"
+    },
     "autoload": {
         "psr-4": {
-            "s00d\\OnlineSimApi\\": "src/"
-        }
+            "s00d\\OnlineSimApi\\": "src/",
+            "Tests\\": "tests/"
+        },
+        "classmap": [
+            "src/"
+        ]
+    },
+    "autoload-dev": {
+        "files": [
+            "./vendor/larapack/dd/src/helper.php"
+        ],
+        "psr-4": {
+            "s00d\\OnlineSimApi\\": "src/",
+            "Tests\\": "tests/"
+        },
+        "classmap": [
+            "src/"
+        ]
     }
 }

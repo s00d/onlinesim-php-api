@@ -8,13 +8,11 @@ use s00d\OnlineSimApi\Apis\GetFree;
 use s00d\OnlineSimApi\Apis\GetNumbers;
 use s00d\OnlineSimApi\Apis\GetProxy;
 use s00d\OnlineSimApi\Apis\GetRent;
+use s00d\OnlineSimApi\Apis\GetUser;
 
 class OnlineSimApi
 {
     protected $request;
-    private $apiKey;
-    private $dev_id;
-    private $locale;
 
     /**
      * OnlineSimApi constructor.
@@ -24,52 +22,47 @@ class OnlineSimApi
      */
     public function __construct($apiKey, $locale = null, $dev_id = null) {
         $this->request = new Request($apiKey, $locale, $dev_id);
-        $this->apiKey = $apiKey;
-        $this->dev_id = $dev_id;
-        $this->locale = $locale;
     }
 
     /**
-     * https://onlinesim.ru/docs/api/ru#getbalance
-     * @return array|null
-     * @throws RequestError
+     * @return GetUser
      */
-    public function balance() {
-        return $this->request->send('getBalance', [], 'GET');
+    public function user() {
+        return new GetUser($this->request);
     }
 
     /**
      * @return GetRent
      */
     public function rent() {
-        return new GetRent($this->apiKey, $this->locale, $this->dev_id);
+        return new GetRent($this->request);
     }
 
     /**
      * @return GetNumbers
      */
     public function numbers() {
-        return new GetNumbers($this->apiKey, $this->locale, $this->dev_id);
+        return new GetNumbers($this->request);
     }
 
     /**
      * @return GetForward
      */
     public function forward() {
-        return new GetForward($this->apiKey, $this->locale, $this->dev_id);
+        return new GetForward($this->request);
     }
 
     /**
      * @return GetProxy
      */
     public function proxy() {
-        return new GetProxy($this->apiKey, $this->locale, $this->dev_id);
+        return new GetProxy($this->request);
     }
 
     /**
      * @return GetFree
      */
     public function free() {
-        return new GetFree($this->apiKey, $this->locale, $this->dev_id);
+        return new GetFree($this->request);
     }
 }

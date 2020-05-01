@@ -26,11 +26,12 @@ apikey | your apikey from onlinesim.ru
 locale | locale ru or en
 dev_id | your dev_id, not require
 
-### apis - balance
+### apis - GetUser
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
-var_dump($request->balance());
+var_dump($request->user()->balance());
 ```
+
 ### apis - GetNumber
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
@@ -40,7 +41,7 @@ $res = $getter->get('3223');
 var_dump($res);
 $res = $getter->state();
 // or
-$res = $getter->state($res['tzid']);
+$res = $getter->stateOne($res['tzid']);
 var_dump($res);
 ...
 $res = $getter->close($res['tzid']);
@@ -50,13 +51,15 @@ $res = $getter->close($res['tzid']);
 ### apis - GetForward
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
-$getter = $request->forward();
-$res = $getter->get();
+$getter = $request->forward([9111111111]);
+$res = $getter->get(); // get new number
 var_dump($res);
 $res = $getter->state();
 // or 
-$res = $getter->state($res['tzid']);
+$res = $getter->stateOne($res['tzid']);
 var_dump($res);
+...
+$res = $getter->forwardingList($res['tzid']);
 ...
 $res = $getter->close($res['tzid']);
 ```
@@ -69,7 +72,7 @@ $res = $getter->get();
 var_dump($res);
 $res = $getter->state();
 // or 
-$res = $getter->state($res['tzid']);
+$res = $getter->stateOne($res['tzid']);
 var_dump($res);
 ```
 
@@ -82,7 +85,7 @@ $res = $getter->get();
 var_dump($res);
 $res = $getter->state();
 // or 
-$res = $getter->state($res['tzid']);
+$res = $getter->stateOne($res['tzid']);
 var_dump($res);
 ...
 $res = $getter->close($res['tzid']);
@@ -97,3 +100,12 @@ var_dump($getter->getPhoneList(7));
 var_dump($getter->getMessageList(11111));
 ```
 
+
+### Responses
+
+All responses from the server are described in the folder Responses
+
+### Bugs
+
+If you have any problems, please create Issues here 
+https://github.com/s00d/onlinesim-api/issues

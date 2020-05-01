@@ -2,10 +2,17 @@
 
 namespace s00d\OnlineSimApi\Apis;
 
-use s00d\OnlineSimApi\OnlineSimApi;
-use s00d\OnlineSimApi\RequestException;
+use s00d\OnlineSimApi\Exceptions\NoNumberException;
+use s00d\OnlineSimApi\Exceptions\RequestException;
+use RuntimeException;
+use Exception;
+use s00d\OnlineSimApi\Responses\GetProxy\ChangeIp;
+use s00d\OnlineSimApi\Responses\GetProxy\ChangeType;
+use s00d\OnlineSimApi\Responses\GetProxy\Get;
+use s00d\OnlineSimApi\Responses\GetProxy\SetComment;
+use s00d\OnlineSimApi\Responses\GetProxy\State;
 
-class GetProxy extends OnlineSimApi
+class GetProxy extends GetUser
 {
     /**
      * https://onlinesim.ru/docs/api/ru#getproxy
@@ -18,7 +25,7 @@ class GetProxy extends OnlineSimApi
      * @param string $city
      * @param int $port_count
      * @param bool $session
-     * @return mixed|null
+     * @return Get
      * @throws RequestException
      */
     public function get($class = 'days', $type = 'private', $connect = 'https', $count = 1, $operator = null, $country = 7, $city = 'any', $port_count = 1, $session = true) {
@@ -36,55 +43,84 @@ class GetProxy extends OnlineSimApi
             $data['operator'] = $operator;
         }
 
-        return $this->request->send('proxy/getProxy', $data, 'GET');
+        return new Get($this->request->send('proxy/getProxy', $data, 'GET'));
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#getstate34
-     * @param null|int $tzid
-     * @return mixed|null
-     * @throws RequestException
+     * @param string $orderby
+     * @return State|null
+     * @throws Exception
      */
-    public function state($tzid = null) {
-        $data = [];
-        if($tzid) {
-            $data['tzid'] = $tzid;
+    public function state($orderby = 'ASC') {
+        $data = [
+            'orderby' => $orderby,
+        ];
+        try {
+            return new State($this->request->send('proxy/getState', $data, 'GET')['list']);
+        } catch (NoNumberException $e) {
+            return new State([]);
+        } catch (RequestException $e) {
+            throw new RequestException($e->getMessage(), $e->getLocale());
+        } catch (Exception $e) {
+            throw new RuntimeException($e->getMessage());
         }
+    }
 
-        return $this->request->send('proxy/getProxyState', $data, 'GET');
+    /**
+     * https://onlinesim.ru/docs/api/ru#getstate34
+     * @param int $tzid
+     * @return Get|null
+     * @throws RequestException
+     * @throws \Exception
+     */
+    public function stateOne($tzid) {
+        $data = [
+            'tzid' => $tzid
+        ];
+
+        try {
+            return new Get($this->request->send('proxy/getState', $data, 'GET')[0]);
+        } catch (NoNumberException $e) {
+            return null;
+        } catch (RequestException $e) {
+            throw new RequestException($e->getMessage(), $e->getLocale());
+        } catch (Exception $e) {
+            throw new RuntimeException($e->getMessage());
+        }
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#changeip
      * @param int $tzid
-     * @return mixed|null
+     * @return ChangeIp
      * @throws RequestException
      */
     public function changeIp($tzid) {
         $data = [
             'tzid' => $tzid
         ];
-        return $this->request->send('proxy/changeIp', $data, 'GET');
+        return new ChangeIp($this->request->send('proxy/changeIp', $data, 'GET'));
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#changetype
      * @param int $tzid
-     * @return mixed|null
+     * @return ChangeType
      * @throws RequestException
      */
     public function changeType($tzid) {
         $data = [
             'tzid' => $tzid
         ];
-        return $this->request->send('proxy/changeType', $data, 'GET');
+        return new ChangeType($this->request->send('proxy/changeType', $data, 'GET'));
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#setcomment
      * @param int $tzid
      * @param string $comment
-     * @return mixed|null
+     * @return SetComment
      * @throws RequestException
      */
     public function setComment($tzid, $comment = '') {
@@ -92,7 +128,7 @@ class GetProxy extends OnlineSimApi
             'tzid' => $tzid,
             'comment' => $comment
         ];
-        return $this->request->send('proxy/setComment', $data, 'GET');
+        return new SetComment($this->request->send('proxy/setComment', $data, 'GET'));
     }
 
 }

@@ -2,10 +2,12 @@
 
 namespace s00d\OnlineSimApi\Apis;
 
-use s00d\OnlineSimApi\OnlineSimApi;
-use s00d\OnlineSimApi\RequestException;
+use s00d\OnlineSimApi\Exceptions\RequestException;
+use s00d\OnlineSimApi\Responses\GetFree\GetList;
+use s00d\OnlineSimApi\Responses\GetFree\GetMessageList;
+use s00d\OnlineSimApi\Responses\GetFree\GetPhoneList;
 
-class GetFree extends OnlineSimApi
+class GetFree extends GetUser
 {
     /**
      * https://onlinesim.ru/docs/api/ru#getfreecountrylist
@@ -13,7 +15,7 @@ class GetFree extends OnlineSimApi
      * @throws RequestException
      */
     public function getList() {
-        return $this->request->send('getFreeCountryList', [], 'GET');
+        return new GetList($this->request->send('getFreeCountryList', [], 'GET')['countries']);
     }
 
     /**
@@ -27,7 +29,7 @@ class GetFree extends OnlineSimApi
             'country' => $country,
         ];
 
-        return $this->request->send('getFreePhoneList', $data, 'GET');
+        return new GetPhoneList($this->request->send('getFreePhoneList', $data, 'GET')['numbers']);
     }
 
     /**
@@ -43,6 +45,6 @@ class GetFree extends OnlineSimApi
             'page' => $page,
         ];
 
-        return $this->request->send('getFreeMessageList', $data, 'GET');
+        return new GetMessageList($this->request->send('getFreeMessageList', $data, 'GET')['messages']['data']);
     }
 }

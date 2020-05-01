@@ -2,6 +2,10 @@
 
 namespace s00d\OnlineSimApi;
 
+use Exception;
+use s00d\OnlineSimApi\Exceptions\NoNumberException;
+use s00d\OnlineSimApi\Exceptions\RequestException;
+
 class Request
 {
     private $url = 'https://onlinesim.ru/api/';
@@ -15,6 +19,13 @@ class Request
         $this->locale = $locale;
     }
 
+    /**
+     * @param string $request
+     * @param array $data
+     * @param string $method
+     * @return mixed
+     * @throws RequestException|NoNumberException|Exception
+     */
     public function send($request, $data, $method = 'GET') {
         $data['apikey'] = $this->apiKey;
         if ($this->dev_id) {
@@ -22,6 +33,7 @@ class Request
         }
 
         $serializedData = http_build_query($data);
+//        dd("{$this->url}{$request}.php?{$serializedData}");
 
         if ($method === 'GET') {
             $result = file_get_contents("{$this->url}{$request}.php?{$serializedData}");
@@ -38,6 +50,9 @@ class Request
         $result = json_decode($result, true);
         if(isset($result['response'])) {
             if((int)$result['response'] !== 1) {
+                if($result['response'] === 'NO_NUMBER' || $result['response'] === 'NO_NUMBER_FOR_FORWARD') {
+                    throw new NoNumberException($result['response']);
+                }
                 throw new RequestException($result['response'], $this->locale);
             }
             unset($result['response']);

@@ -1,6 +1,6 @@
 <?php
 
-namespace s00d\OnlineSimApi;
+namespace s00d\OnlineSimApi\Exceptions;
 
 use Exception;
 
@@ -95,8 +95,10 @@ class RequestException extends Exception {
             'SERVICE_TO_NUMBER_EMPTY' => 'нет номеров для повторного приема по данному сервису',
         ]
     ];
+    private $locale;
 
     public function __construct($error, $locale = null) {
+        $this->locale = $locale;
         if ($locale) {
             if(!isset($this->errors[$locale])) {
                 throw new Exception('bad locale');
@@ -107,6 +109,10 @@ class RequestException extends Exception {
         }
         $message = "Error in {$this->getFile()}, line: {$this->getLine()}: {$error}";
         parent::__construct($message);
+    }
+
+    public function getLocale() {
+        return $this->locale;
     }
 
 }

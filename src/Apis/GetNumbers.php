@@ -2,37 +2,35 @@
 
 namespace s00d\OnlineSimApi\Apis;
 
-use s00d\OnlineSimApi\OnlineSimApi;
-use s00d\OnlineSimApi\RequestException;
+use RuntimeException;
+use s00d\OnlineSimApi\Exceptions\NoNumberException;
+use s00d\OnlineSimApi\Exceptions\RequestException;
+use Exception;
+use s00d\OnlineSimApi\Responses\GetNumbers\Close;
+use s00d\OnlineSimApi\Responses\GetNumbers\Get;
+use s00d\OnlineSimApi\Responses\GetNumbers\Price;
+use s00d\OnlineSimApi\Responses\GetNumbers\Repeat;
+use s00d\OnlineSimApi\Responses\GetNumbers\Service;
+use s00d\OnlineSimApi\Responses\GetNumbers\ServiceNumber;
+use s00d\OnlineSimApi\Responses\GetNumbers\State;
+use s00d\OnlineSimApi\Responses\GetNumbers\StateOne;
+use s00d\OnlineSimApi\Responses\GetNumbers\TariffCountryOne;
+use s00d\OnlineSimApi\Responses\GetNumbers\Tariffs;
 
-class GetNumbers extends OnlineSimApi
+class GetNumbers extends GetUser
 {
     /**
-     * https://onlinesim.ru/docs/api/ru#getstate
-     * @param null|int $tzid
-     * @param int $message_to_code - 0|1
-     * @param string $orderby - ASC|DESC
-     * @param bool $msg_list
-     * @param bool $clean
-     * @return mixed|null
+     * @param string $service - https://onlinesim.ru/docs/api/ru#getnum
+     * @param int $country
+     * @return Price
      * @throws RequestException
      */
-    public function state($tzid = null, $message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = false) {
+    public function price($service, $country = 7) {
         $data = [
-            'message_to_code' => $message_to_code,
-            'orderby' => $orderby,
-            'msg_list' => $msg_list?1:0,
-            'clean' => $clean?1:0,
-            'type' => 'index',
+            'service' => $service,
+            'country' => $country,
         ];
-        if($tzid) {
-            $data['country'] = $tzid;
-        }
-        $res = $this->request->send('getState', $data, 'GET');
-        if($tzid && count($res) > 0) {
-            return $res[0];
-        }
-        return $res;
+        return new Price($this->request->send('getPrice', $data, 'GET'));
     }
 
     /**
@@ -41,7 +39,7 @@ class GetNumbers extends OnlineSimApi
      * @param int $country
      * @param array $reject
      * @param bool $extension
-     * @return mixed|null
+     * @return Get
      * @throws RequestException
      */
     public function get($service, $country = 7, $reject = [], $extension = false) {
@@ -51,13 +49,73 @@ class GetNumbers extends OnlineSimApi
             'reject' => $reject,
             'extension' => $extension?2:0,
         ];
-        return $this->request->send('getNum', $data, 'GET');
+        return new Get($this->request->send('getNum', $data, 'GET'));
+    }
+
+    /**
+     * https://onlinesim.ru/docs/api/ru#getstate
+     * @param int $message_to_code - 0|1
+     * @param string $orderby - ASC|DESC
+     * @param bool $msg_list
+     * @param bool $clean
+     * @return State
+     * @throws RequestException
+     * @throws \Exception
+     */
+    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = false) {
+        $data = [
+            'message_to_code' => $message_to_code,
+            'orderby' => $orderby,
+            'msg_list' => $msg_list?1:0,
+            'clean' => $clean?1:0,
+            'type' => 'index',
+        ];
+
+        try {
+            return new State($this->request->send('getState', $data, 'GET') || []);
+        } catch (NoNumberException $e) {
+            return new State();
+        } catch (RequestException $e) {
+            throw new RequestException($e->getMessage(), $e->getLocale());
+        } catch (\Exception $e) {
+            throw new RuntimeException($e->getMessage());
+        }
+    }
+
+    /**
+     * https://onlinesim.ru/docs/api/ru#getstate
+     * @param int $tzid
+     * @param int $message_to_code - 0|1
+     * @param string $orderby - ASC|DESC
+     * @param bool $msg_list
+     * @param bool $clean
+     * @return StateOne|null
+     * @throws RequestException
+     * @throws \Exception
+     */
+    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = false) {
+        $data = [
+            'message_to_code' => $message_to_code,
+            'msg_list' => $msg_list?1:0,
+            'clean' => $clean?1:0,
+            'tzid' => $tzid,
+            'type' => 'index',
+        ];
+        try {
+            return new StateOne($this->request->send('getState', $data, 'GET')[0]);
+        } catch (NoNumberException $e) {
+            return null;
+        } catch (RequestException $e) {
+            throw new RequestException($e->getMessage(), $e->getLocale());
+        } catch (Exception $e) {
+            throw new RuntimeException($e->getMessage());
+        }
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#setoperationrevise
      * @param int $tzid
-     * @return mixed|null
+     * @return Close
      * @throws RequestException
      */
     public function close($tzid) {
@@ -65,14 +123,14 @@ class GetNumbers extends OnlineSimApi
             'tzid' => $tzid,
         ];
 
-        return $this->request->send('setOperationRevise', $data, 'GET');
+        return new Close($this->request->send('setOperationRevise', $data, 'GET'));
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#getnumrepeat
      * @param string $service
      * @param int $number
-     * @return mixed|null
+     * @return Repeat
      * @throws RequestException
      */
     public function repeat($service, $number) {
@@ -80,42 +138,46 @@ class GetNumbers extends OnlineSimApi
             'service' => $service,
             'number' => $number,
         ];
-        return $this->request->send('getNumRepeat', $data, 'GET');
+        return new Repeat($this->request->send('getNumRepeat', $data, 'GET'));
     }
 
     /**
      * https://onlinesim.ru/docs/api/ru#getnumbersstats
-     * @param null|int $country
-     * @return mixed|null
+     * @param string|int $country
+     * @return Tariffs|TariffCountryOne
      * @throws RequestException
      */
-    public function tariffs($country = null) {
+    public function tariffs($country = 'all') {
         $data = [];
         if($country) {
             $data['country'] = $country;
         }
-        return $this->request->send('getNumbersStats', $data, 'GET');
+        if($country === 'all') {
+            return new Tariffs($this->request->send('getNumbersStats', $data, 'GET'));
+        } else {
+            return new TariffCountryOne($this->request->send('getNumbersStats', $data, 'GET'));
+        }
     }
 
     /**
      * https://on.test/docs/api/ru#getservice
-     * @return mixed|null
+     * @return Service
      * @throws RequestException
      */
     public function service() {
-        return $this->request->send('getService', [], 'GET');
+        return new Service($this->request->send('getService', [], 'GET'));
     }
 
     /**
      * https://on.test/docs/api/ru#getservicenumber
      * @param string $service
-     * @return mixed|null
+     * @return ServiceNumber
      * @throws RequestException
      */
     public function serviceNumber($service) {
         $data = [
             'service' => $service,
         ];
-        return $this->request->send('getServiceNumber', $service, 'GET');
+        return new ServiceNumber($this->request->send('getServiceNumber', $data, 'GET'));
     }
 }
