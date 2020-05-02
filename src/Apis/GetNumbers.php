@@ -94,7 +94,7 @@ class GetNumbers extends GetUser
      * @throws RequestException
      * @throws \Exception
      */
-    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = false) {
+    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = true) {
         $data = [
             'message_to_code' => $message_to_code,
             'msg_list' => $msg_list?1:0,

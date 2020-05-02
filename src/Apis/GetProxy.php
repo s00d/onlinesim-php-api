@@ -16,7 +16,7 @@ class GetProxy extends GetUser
 {
     /**
      * https://onlinesim.ru/docs/api/ru#getproxy
-     * @param string $class
+     * @param string $class - days or traffic
      * @param string $type
      * @param string $connect
      * @param int $count

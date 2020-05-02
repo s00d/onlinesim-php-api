@@ -52,7 +52,7 @@ class GetForward extends GetUser
      * @return State
      * @throws RequestException|Exception
      */
-    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = false) {
+    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = true) {
         $data = [
             'message_to_code' => $message_to_code,
             'orderby' => $orderby,
@@ -80,7 +80,7 @@ class GetForward extends GetUser
      * @return StateOne|null
      * @throws RequestException
      */
-    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = false) {
+    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = true) {
         $data = [
             'message_to_code' => $message_to_code,
             'msg_list' => $msg_list?1:0,
@@ -145,14 +145,15 @@ class GetForward extends GetUser
      * https://onlinesim.ru/docs/api/ru#forwardinglist
      * @param int $tzid
      * @param int $page
-     * @param string $sort
+     * @param string $orderby
      * @return ForwardingList|ForwardingListOne
+     * @throws NoNumberException
      * @throws RequestException
      */
-    public function forwardingList($tzid = null, $page = 1, $sort = 'ASC') {
+    public function forwardingList($tzid = null, $page = 1, $orderby = 'ASC') {
         $data = [
             'page' => $page,
-            'sort' => $sort,
+            'sort' => $orderby,
         ];
         if(!$tzid) {
             return new ForwardingList($this->request->send('forwardingList', $data, 'GET')['forwardingList']['data']);
@@ -204,12 +205,12 @@ class GetForward extends GetUser
      * @return CallList
      * @throws RequestException
      */
-    public function callList($number, $count = 10, $page = 1, $order = 'ASC') {
+    public function callList($number, $count = 10, $page = 1, $orderby = 'ASC') {
         $data = [
             'number' => $number,
             'count' => $count,
             'page' => $page,
-            'order' => $order,
+            'order' => $orderby,
         ];
 
         return new CallList($this->request->send('getCallNumberList', $data, 'GET')['list']['data']);
