@@ -13,7 +13,7 @@ composer require s00d/onlinesim-api
 
 ## Documentation
 
-please see !!! [Documentation](https://github.com/s00d/onlinesim-api/wiki) !!!
+please see !!! **[Documentation](https://github.com/s00d/onlinesim-api/wiki)** !!!
 
 ## Responses
 
