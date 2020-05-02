@@ -26,13 +26,14 @@ apikey | your apikey from onlinesim.ru
 locale | locale ru or en
 dev_id | your dev_id, not require
 
-### apis - GetUser
+### apis - GetUser [[Docs](https://github.com/s00d/onlinesim-api/wiki/GetUser)]
+
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 var_dump($request->user()->balance()->toArray());
 ```
 
-### apis - GetNumber
+### apis - GetNumber [[Docs](https://github.com/s00d/onlinesim-api/wiki/GetNumber)]
 
 ![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetNumber.png "Workflow Diagram")
 
@@ -56,7 +57,7 @@ $res = $getter->close($res->tzid)->toArray();
 
 ```
 
-### apis - GetForward
+### apis - GetForward [[Docs](https://github.com/s00d/onlinesim-api/wiki/GetForward)]
 
 ![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetForward.png "Workflow Diagram")
 
@@ -77,7 +78,7 @@ $res = $getter->callList($res->tzid)->toArray();
 $res = $getter->close($res->tzid)->toArray();
 ```
 
-### apis - GetProxy
+### apis - GetProxy [[Docs](https://github.com/s00d/onlinesim-api/wiki/GetProxy)]
 
 ![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetProxy.png "Workflow Diagram")
 
@@ -92,7 +93,7 @@ $res = $getter->stateOne($res->tzid)->toArray();
 var_dump($res);
 ```
 
-### apis - GetRent
+### apis - GetRent [[Docs](https://github.com/s00d/onlinesim-api/wiki/GetRent)]
 
 ![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetRent.png "Workflow Diagram")
 
@@ -110,7 +111,7 @@ var_dump($res);
 $res = $getter->close($res->tzid)->toArray();
 ```
 
-### apis - GetFree
+### apis - GetFree [[Docs](https://github.com/s00d/onlinesim-api/wiki/GetFree)]
 
 ![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetFree.png "Workflow Diagram")
 
