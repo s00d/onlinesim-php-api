@@ -33,6 +33,9 @@ var_dump($request->user()->balance()->toArray());
 ```
 
 ### apis - GetNumber
+
+![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetNumber.png "Logo Title Text 1")
+
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->numbers();
