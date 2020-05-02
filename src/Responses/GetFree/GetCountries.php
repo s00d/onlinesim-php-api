@@ -6,13 +6,13 @@ namespace s00d\OnlineSimApi\Responses\GetFree;
 use s00d\OnlineSimApi\Responses\Base;
 use s00d\OnlineSimApi\Responses\GetNumbers\TariffCountryOne;
 
-class GetList extends Base
+class GetCountries extends Base
 {
     public $data = [];
 
     public function __construct($properties = []){
         foreach ($properties as $key => $value) {
-            $this->data[$value['country']] = new GetListOne($value);
+            $this->data[$value['country']] = new GetCountriesOne($value);
         }
     }
 
@@ -25,7 +25,7 @@ class GetList extends Base
 
     /**
      * @param $code
-     * @return TariffCountryOne
+     * @return GetCountriesOne
      */
     public function country($code) {
         if(!isset($this->data[$code])) {
@@ -37,7 +37,7 @@ class GetList extends Base
     public function toArray() {
         $result = [];
         foreach ($this->data as $key => $item) {
-            if($item instanceof GetListOne) {
+            if($item instanceof GetCountriesOne) {
                 $result[$key] = $item->toArray();
             }
         }

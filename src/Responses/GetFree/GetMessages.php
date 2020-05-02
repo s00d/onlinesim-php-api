@@ -5,18 +5,18 @@ namespace s00d\OnlineSimApi\Responses\GetFree;
 
 use s00d\OnlineSimApi\Responses\Base;
 
-class GetMessageList extends Base
+class GetMessages extends Base
 {
     public $data = [];
 
     public function __construct($properties = []){
         foreach ($properties as $key => $value) {
-            $this->data[] = new GetMessageListOne($value);
+            $this->data[] = new GetMessagesOne($value);
         }
     }
 
     /**
-     * @return GetMessageListOne
+     * @return GetMessagesOne
      */
     public function first() {
         return array_shift($this->data);
@@ -25,7 +25,7 @@ class GetMessageList extends Base
     public function toArray() {
         $result = [];
         foreach ($this->data as $key => $item) {
-            if($item instanceof GetMessageListOne) {
+            if($item instanceof GetMessagesOne) {
                 $result[$key] = $item->toArray();
             }
         }

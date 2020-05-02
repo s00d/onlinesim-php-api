@@ -19,27 +19,27 @@ class GetFreeTest extends TestCase
         $this->request = new OnlineSimApi(getenv('APIKEY'));
     }
 
-    public function testGetList()
+    public function testCountries()
     {
-        $countries = $this->request->free()->getList();
+        $countries = $this->request->free()->countries();
         $this->assertInternalType('array', $countries->toArray());
         $this->assertArrayHasKey('country', $countries->country(7)->toArray());
         $this->assertTrue($countries->country(7)->get('country') === 7);
     }
 
-    public function testGetMessageList()
+    public function testMessages()
     {
-        $messages = $this->request->free()->getMessageList(
-            $this->request->free()->getPhoneList(7)->first()->get('number')
+        $messages = $this->request->free()->messages(
+            $this->request->free()->numbers(7)->first()->get('number')
         );
         $this->assertInternalType('array', $messages->toArray());
         $first = $messages->first();
         $this->assertArrayHasKey('text', $first->toArray());
     }
 
-    public function testGetPhoneList()
+    public function testNumbers()
     {
-        $data = $this->request->free()->getPhoneList(7);
+        $data = $this->request->free()->numbers(7);
         $this->assertInternalType('array', $data->toArray());
         $first = $data->first();
         $this->assertArrayHasKey('number', $first->toArray());

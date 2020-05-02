@@ -5,7 +5,7 @@ namespace s00d\OnlineSimApi\Responses\GetFree;
 
 use s00d\OnlineSimApi\Responses\Base;
 
-class GetMessageListOne extends Base
+class GetMessagesOne extends Base
 {
     public $text;
     public $in_number;

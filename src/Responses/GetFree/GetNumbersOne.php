@@ -5,7 +5,7 @@ namespace s00d\OnlineSimApi\Responses\GetFree;
 
 use s00d\OnlineSimApi\Responses\Base;
 
-class GetPhoneListOne extends  Base
+class GetNumbersOne extends  Base
 {
     public $maxdate;
     public $number;

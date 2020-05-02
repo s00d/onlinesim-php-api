@@ -15,6 +15,8 @@ use s00d\OnlineSimApi\Responses\GetForward\Save;
 use s00d\OnlineSimApi\Responses\GetForward\SetEnable;
 use s00d\OnlineSimApi\Responses\GetForward\State;
 use s00d\OnlineSimApi\Responses\GetForward\StateOne;
+use s00d\OnlineSimApi\Responses\GetNumbers\Close;
+use s00d\OnlineSimApi\Responses\GetNumbers\Next;
 
 class GetForward extends GetUser
 {
@@ -95,6 +97,34 @@ class GetForward extends GetUser
         } catch (\Exception $e) {
             throw new RuntimeException($e->getMessage());
         }
+    }
+
+    /**
+     * https://onlinesim.ru/docs/api/ru#setoperationok
+     * @param int $tzid
+     * @return Close
+     * @throws RequestException
+     */
+    public function close($tzid) {
+        $data = [
+            'tzid' => $tzid,
+        ];
+
+        return new Close($this->request->send('setOperationOk', $data, 'GET'));
+    }
+
+    /**
+     * https://onlinesim.ru/docs/api/ru#setoperationrevise
+     * @param int $tzid
+     * @return Next
+     * @throws RequestException
+     */
+    public function next($tzid) {
+        $data = [
+            'tzid' => $tzid,
+        ];
+
+        return new Next($this->request->send('setOperationRevise', $data, 'GET'));
     }
 
     /**

@@ -34,7 +34,7 @@ var_dump($request->user()->balance()->toArray());
 
 ### apis - GetNumber
 
-![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetNumber.png "Logo Title Text 1")
+![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetNumber.png "Workflow Diagram")
 
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
@@ -57,6 +57,9 @@ $res = $getter->close($res->tzid)->toArray();
 ```
 
 ### apis - GetForward
+
+![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetForward.png "Workflow Diagram")
+
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->forward([9111111111]);
@@ -75,6 +78,9 @@ $res = $getter->close($res->tzid)->toArray();
 ```
 
 ### apis - GetProxy
+
+![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetProxy.png "Workflow Diagram")
+
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->proxy();
@@ -87,6 +93,9 @@ var_dump($res);
 ```
 
 ### apis - GetRent
+
+![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetRent.png "Workflow Diagram")
+
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->rent();
@@ -102,12 +111,17 @@ $res = $getter->close($res->tzid)->toArray();
 ```
 
 ### apis - GetFree
+
+![Diagram](https://raw.githubusercontent.com/s00d/onlinesim-api/master/Diagrams/GetFree.png "Workflow Diagram")
+
 ```php
 $request = new OnlineSimApi('apikey', 'locale', 'dev_id');
 $getter = $request->free();
-var_dump($getter->getList()->toArray());
-var_dump($getter->getPhoneList(7)->toArray());
-var_dump($getter->getMessageList(91111...)->toArray());
+$country = $getter->countries();
+var_dump($country->toArray());
+$numbers = $getter->numbers($country->first()->country);
+var_dump($numbers->toArray());
+var_dump($getter->messages($numbers->first()->number)->toArray());
 ```
 
 

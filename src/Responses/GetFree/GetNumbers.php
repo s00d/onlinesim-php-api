@@ -5,18 +5,18 @@ namespace s00d\OnlineSimApi\Responses\GetFree;
 
 use s00d\OnlineSimApi\Responses\Base;
 
-class GetPhoneList extends Base
+class GetNumbers extends Base
 {
     public $data = [];
 
     public function __construct($properties = []) {
         foreach ($properties as $key => $value) {
-            $this->data[$value['number']] = new GetPhoneListOne($value);
+            $this->data[$value['number']] = new GetNumbersOne($value);
         }
     }
 
     /**
-     * @return GetPhoneListOne
+     * @return GetNumbersOne
      */
     public function first() {
         return array_shift($this->data);
@@ -24,7 +24,7 @@ class GetPhoneList extends Base
 
     /**
      * @param $code
-     * @return TariffCountryOne
+     * @return GetNumbersOne
      */
     public function country($code) {
         if(!isset($this->data[$code])) {
@@ -36,7 +36,7 @@ class GetPhoneList extends Base
     public function toArray() {
         $result = [];
         foreach ($this->data as $key => $item) {
-            if($item instanceof GetPhoneListOne) {
+            if($item instanceof GetNumbers) {
                 $result[$key] = $item->toArray();
             }
         }
