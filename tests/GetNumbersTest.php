@@ -52,6 +52,11 @@ class GetNumbersTest extends TestCase
 
     }
 
+    public function testNext()
+    {
+        $data = $this->request->numbers()->next(1);
+    }
+
     public function testClose()
     {
 

@@ -42,6 +42,11 @@ var_dump($res);
 $res = $getter->state()->toArray();
 // or
 $res = $getter->stateOne($res->tzid)->toArray();
+
+// next message
+$getter->next($res->tzid)->toArray();
+...
+$res = $getter->state()->toArray();
 var_dump($res);
 ...
 $res = $getter->close($res->tzid)->toArray();

@@ -8,6 +8,7 @@ use s00d\OnlineSimApi\Exceptions\RequestException;
 use Exception;
 use s00d\OnlineSimApi\Responses\GetNumbers\Close;
 use s00d\OnlineSimApi\Responses\GetNumbers\Get;
+use s00d\OnlineSimApi\Responses\GetNumbers\Next;
 use s00d\OnlineSimApi\Responses\GetNumbers\Price;
 use s00d\OnlineSimApi\Responses\GetNumbers\Repeat;
 use s00d\OnlineSimApi\Responses\GetNumbers\Service;
@@ -62,7 +63,7 @@ class GetNumbers extends GetUser
      * @throws RequestException
      * @throws \Exception
      */
-    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = false) {
+    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = true) {
         $data = [
             'message_to_code' => $message_to_code,
             'orderby' => $orderby,
@@ -115,6 +116,20 @@ class GetNumbers extends GetUser
     /**
      * https://onlinesim.ru/docs/api/ru#setoperationrevise
      * @param int $tzid
+     * @return Next
+     * @throws RequestException
+     */
+    public function next($tzid) {
+        $data = [
+            'tzid' => $tzid,
+        ];
+
+        return new Next($this->request->send('setOperationRevise', $data, 'GET'));
+    }
+
+    /**
+     * https://onlinesim.ru/docs/api/ru#setoperationok
+     * @param int $tzid
      * @return Close
      * @throws RequestException
      */
@@ -123,7 +138,7 @@ class GetNumbers extends GetUser
             'tzid' => $tzid,
         ];
 
-        return new Close($this->request->send('setOperationRevise', $data, 'GET'));
+        return new Close($this->request->send('setOperationOk', $data, 'GET'));
     }
 
     /**
