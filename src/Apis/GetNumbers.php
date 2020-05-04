@@ -59,17 +59,17 @@ class GetNumbers extends GetUser
      * @param string $orderby - ASC|DESC
      * @param bool $msg_list
      * @param bool $clean
+     * @param bool $repeat
      * @return State
      * @throws RequestException
-     * @throws \Exception
      */
-    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = true) {
+    public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = true, $repeat = false) {
         $data = [
             'message_to_code' => $message_to_code,
             'orderby' => $orderby,
             'msg_list' => $msg_list?1:0,
             'clean' => $clean?1:0,
-            'type' => 'index',
+            'type' => $repeat?'repeat':'index',
         ];
 
         try {
@@ -87,20 +87,19 @@ class GetNumbers extends GetUser
      * https://onlinesim.ru/docs/api/ru#getstate
      * @param int $tzid
      * @param int $message_to_code - 0|1
-     * @param string $orderby - ASC|DESC
      * @param bool $msg_list
      * @param bool $clean
+     * @param bool $repeat
      * @return StateOne|null
      * @throws RequestException
-     * @throws \Exception
      */
-    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = true) {
+    public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = true, $repeat = false) {
         $data = [
             'message_to_code' => $message_to_code,
             'msg_list' => $msg_list?1:0,
             'clean' => $clean?1:0,
             'tzid' => $tzid,
-            'type' => 'index',
+            'type' => $repeat?'repeat':'index',
         ];
         try {
             return new StateOne($this->request->send('getState', $data, 'GET')[0]);
