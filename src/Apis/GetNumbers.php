@@ -24,7 +24,7 @@ class GetNumbers extends GetUser
      * @param string $service - https://onlinesim.ru/docs/api/ru#getnum
      * @param int $country
      * @return Price
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function price($service, $country = 7) {
         $data = [
@@ -41,7 +41,7 @@ class GetNumbers extends GetUser
      * @param array $reject
      * @param bool $extension
      * @return Get
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function get($service, $country = 7, $reject = [], $extension = false) {
         $data = [
@@ -79,7 +79,7 @@ class GetNumbers extends GetUser
             return new State();
         } catch (RequestException $e) {
             throw new RequestException($e->getMessage(), $e->getLocale());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new RuntimeException($e->getMessage());
         }
     }
@@ -118,7 +118,7 @@ class GetNumbers extends GetUser
      * https://onlinesim.ru/docs/api/ru#setoperationrevise
      * @param int $tzid
      * @return Next
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function next($tzid) {
         $data = [
@@ -132,7 +132,7 @@ class GetNumbers extends GetUser
      * https://onlinesim.ru/docs/api/ru#setoperationok
      * @param int $tzid
      * @return Close
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function close($tzid) {
         $data = [
@@ -147,7 +147,7 @@ class GetNumbers extends GetUser
      * @param string $service
      * @param int $number
      * @return Repeat
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function repeat($service, $number) {
         $data = [
@@ -161,7 +161,7 @@ class GetNumbers extends GetUser
      * https://onlinesim.ru/docs/api/ru#getnumbersstats
      * @param string|int $country
      * @return Tariffs|TariffCountryOne
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function tariffs($country = 'all') {
         $data = [];
@@ -170,15 +170,14 @@ class GetNumbers extends GetUser
         }
         if($country === 'all') {
             return new Tariffs($this->request->send('getNumbersStats', $data, 'GET'));
-        } else {
-            return new TariffCountryOne($this->request->send('getNumbersStats', $data, 'GET'));
         }
+        return new TariffCountryOne($this->request->send('getNumbersStats', $data, 'GET'));
     }
 
     /**
      * https://on.test/docs/api/ru#getservice
      * @return Service
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function service() {
         return new Service($this->request->send('getService', [], 'GET'));
@@ -188,7 +187,7 @@ class GetNumbers extends GetUser
      * https://on.test/docs/api/ru#getservicenumber
      * @param string $service
      * @return ServiceNumber
-     * @throws RequestException
+     * @throws RequestException|NoNumberException
      */
     public function serviceNumber($service) {
         $data = [
