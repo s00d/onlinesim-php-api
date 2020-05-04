@@ -62,6 +62,7 @@ class GetNumbers extends GetUser
      * @param bool $repeat
      * @return State
      * @throws RequestException
+     * @throws Exception
      */
     public function state($message_to_code = 1, $orderby = 'ASC', $msg_list = true, $clean = true, $repeat = false) {
         $data = [
@@ -92,6 +93,7 @@ class GetNumbers extends GetUser
      * @param bool $repeat
      * @return StateOne|null
      * @throws RequestException
+     * @throws Exception
      */
     public function stateOne($tzid, $message_to_code = 1, $msg_list = true, $clean = true, $repeat = false) {
         $data = [
