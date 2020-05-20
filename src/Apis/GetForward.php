@@ -166,7 +166,7 @@ class GetForward extends GetUser
      * https://onlinesim.ru/docs/api/ru#forwardingsave
      * @param int $tzid
      * @param bool $auto
-     * @param null|int $forward_number
+     * @param null|array $forward_number
      * @return Save
      * @throws RequestException
      */
