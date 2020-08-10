@@ -1,8 +1,8 @@
-# Onlinesim API
+# Onlinesim PHP API
 
 [packagist](https://packagist.org/packages/s00d/onlinesim-api)
 
-Api for onlinesim
+Wrapper for automatic reception of SMS-messages by onlinesim.ru
 
 ## Installation
 
