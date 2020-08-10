@@ -21,5 +21,4 @@ All responses from the server are described in the folder Responses
 
 ## Bugs
 
-If you have any problems, please create Issues here 
-https://github.com/s00d/onlinesim-php-api/issues
+If you have any problems, please create Issues [here](https://github.com/s00d/onlinesim-php-api/issues)
