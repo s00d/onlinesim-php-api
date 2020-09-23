@@ -143,6 +143,21 @@ class GetNumbers extends GetUser
     }
 
     /**
+     * https://onlinesim.ru/docs/api/ru#setoperationok
+     * @param int $tzid
+     * @return Close
+     * @throws RequestException|NoNumberException
+     */
+    public function ban($tzid) {
+        $data = [
+            'tzid' => $tzid,
+            'ban' => 1
+        ];
+
+        return new Close($this->request->send('setOperationOk', $data, 'GET'));
+    }
+
+    /**
      * https://onlinesim.ru/docs/api/ru#getnumrepeat
      * @param string $service
      * @param int $number
