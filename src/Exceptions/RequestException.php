@@ -101,7 +101,7 @@ class RequestException extends Exception {
         $this->locale = $locale;
         if ($locale) {
             if(!isset($this->errors[$locale])) {
-                throw new Exception('bad locale');
+                $locale = 'en';
             }
             if(isset($this->errors[$locale][$error])) {
                 $error = $this->errors[$locale][$error];
