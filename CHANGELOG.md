@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.9] - 2022-05-06
 ### Changed
 - fix locale
+- update deps
 
 **## [1.1.7] - 2020-08-11
 ### Changed
