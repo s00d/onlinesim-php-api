@@ -78,7 +78,7 @@ class GetNumbers extends GetUser
         } catch (NoNumberException $e) {
             return new State();
         } catch (RequestException $e) {
-            throw new RequestException($e->getMessage(), $e->getLocale());
+            throw new RequestException($e->getMessage(), $this->request->getLocale());
         } catch (Exception $e) {
             throw new RuntimeException($e->getMessage());
         }
@@ -108,7 +108,7 @@ class GetNumbers extends GetUser
         } catch (NoNumberException $e) {
             return null;
         } catch (RequestException $e) {
-            throw new RequestException($e->getMessage(), $e->getLocale());
+            throw new RequestException($e->getMessage(), $this->request->getLocale());
         } catch (Exception $e) {
             throw new RuntimeException($e->getMessage());
         }

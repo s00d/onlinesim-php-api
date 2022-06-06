@@ -60,4 +60,8 @@ class Request
 
         return $result;
     }
+
+    public function getLocale() {
+        return $this->locale;
+    }
 }
