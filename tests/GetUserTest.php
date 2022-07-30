@@ -12,10 +12,12 @@ class GetUserTest extends TestCase
      */
     private $request;
 
-    public function setUp() {
+    public function setUp(): void {
         $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__.'/..');
-        $dotenv->load();
-        $this->request = new OnlineSimApi(getenv('APIKEY'));
+        try {
+            $dotenv->load();
+        } catch (\Exception $e) {}
+        $this->request = new OnlineSimApi(getenv('ON_APIKEY'));
     }
 
     public function testBalance()

@@ -3,7 +3,6 @@
 
 namespace s00d\OnlineSimApi;
 
-use s00d\OnlineSimApi\Apis\GetForward;
 use s00d\OnlineSimApi\Apis\GetFree;
 use s00d\OnlineSimApi\Apis\GetNumbers;
 use s00d\OnlineSimApi\Apis\GetProxy;
@@ -43,13 +42,6 @@ class OnlineSimApi
      */
     public function numbers() {
         return new GetNumbers($this->request);
-    }
-
-    /**
-     * @return GetForward
-     */
-    public function forward() {
-        return new GetForward($this->request);
     }
 
     /**
