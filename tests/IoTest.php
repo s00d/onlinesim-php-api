@@ -20,11 +20,11 @@ class IoTest extends TestCase
         } catch (\Exception $e) {
         }
         $this->request = new OnlineSimApi(getenv('ON_APIKEY'));
+        $this->request->init();
     }
 
     public function testIsIo()
     {
-        $this->request->reconfig();
         $data = $this->request->user()->balance()->toArray();
         $this->assertIsArray($data);
         $this->assertArrayHasKey('balance', $data);
