@@ -24,7 +24,7 @@ class IoTest extends TestCase
 
     public function testIsIo()
     {
-        $this->request->setIo();
+        $this->request->reconfig();
         $data = $this->request->user()->balance()->toArray();
         $this->assertIsArray($data);
         $this->assertArrayHasKey('balance', $data);

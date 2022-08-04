@@ -19,8 +19,8 @@ class Request
         $this->locale = $locale;
     }
 
-    public function setIo():void {
-        $this->url = 'https://onlinesim.io/api/';
+    public function setDomain($domain):void {
+        $this->url = "https://{$domain}/api/";
     }
 
     /**

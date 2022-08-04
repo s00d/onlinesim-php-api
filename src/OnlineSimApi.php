@@ -8,6 +8,7 @@ use s00d\OnlineSimApi\Apis\GetNumbers;
 use s00d\OnlineSimApi\Apis\GetProxy;
 use s00d\OnlineSimApi\Apis\GetRent;
 use s00d\OnlineSimApi\Apis\GetUser;
+use s00d\OnlineSimApi\Exceptions\NoAuthException;
 
 class OnlineSimApi
 {
@@ -23,8 +24,12 @@ class OnlineSimApi
         $this->request = new Request($apiKey, $locale, $dev_id);
     }
 
-    public function setIo() {
-        $this->request->setIo();
+    public function init() {
+        $profile = $this->user()->me();
+        if(!$profile->auth) {
+            throw new NoAuthException();
+        }
+        $this->request->setDomain($profile->user->domain);
         return $this;
     }
 

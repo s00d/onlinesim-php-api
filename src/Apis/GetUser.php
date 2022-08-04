@@ -5,6 +5,7 @@ namespace s00d\OnlineSimApi\Apis;
 use s00d\OnlineSimApi\Exceptions\RequestException;
 use s00d\OnlineSimApi\Request;
 use s00d\OnlineSimApi\Responses\GetUser\Balance;
+use s00d\OnlineSimApi\Responses\GetUser\Me;
 use s00d\OnlineSimApi\Responses\GetUser\Profile;
 
 class GetUser
@@ -36,6 +37,10 @@ class GetUser
      */
     public function profile() {
         return new Profile($this->request->send('getProfile', [], 'GET')['profile']);
+    }
+
+    public function me() {
+        return new Me($this->request->send('user/me', [], 'GET'));
     }
 
 }
