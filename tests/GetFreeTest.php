@@ -23,9 +23,9 @@ class GetFreeTest extends TestCase
     public function testCountries()
     {
         $countries = $this->request->free()->countries();
-        $this->assertInternalType('array', $countries->toArray());
+        $this->assertIsArray($countries->toArray());
         $this->assertArrayHasKey('country', $countries->country(7)->toArray());
-        $this->assertTrue($countries->country(7)->get('country') === 7);
+        $this->assertSame($countries->country(7)->get('country'), 7);
     }
 
     public function testMessages()
@@ -33,7 +33,7 @@ class GetFreeTest extends TestCase
         $messages = $this->request->free()->messages(
             $this->request->free()->numbers(7)->first()->get('number')
         );
-        $this->assertInternalType('array', $messages->toArray());
+        $this->assertIsArray($messages->toArray());
         $first = $messages->first();
         $this->assertArrayHasKey('text', $first->toArray());
     }
@@ -41,7 +41,7 @@ class GetFreeTest extends TestCase
     public function testNumbers()
     {
         $data = $this->request->free()->numbers(7);
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
         $first = $data->first();
         $this->assertArrayHasKey('number', $first->toArray());
     }

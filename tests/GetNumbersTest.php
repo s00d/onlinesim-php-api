@@ -30,13 +30,13 @@ class GetNumbersTest extends TestCase
     public function testStateOne()
     {
 //        $data = $this->request->numbers()->stateOne()->toArray();
-//        $this->assertInternalType('array', $data);
+//        $this->assertIsArray($data);
     }
 
     public function testState()
     {
 //        $data = $this->request->numbers()->state()->toArray();
-//        $this->assertInternalType('array', $data);
+//        $this->assertIsArray($data);
     }
 
     public function testGet()
@@ -67,9 +67,9 @@ class GetNumbersTest extends TestCase
     public function testTariffs()
     {
         $data = $this->request->numbers()->tariffs();
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
         $this->assertArrayHasKey('slug', $data->country(7)->service('VKcom')->toArray());
-        $this->assertTrue($data->country(7)->service('VKcom')->get('slug') === 'VKcom');
+        $this->assertSame($data->country(7)->service('VKcom')->get('slug'), 'VKcom');
 
     }
 }

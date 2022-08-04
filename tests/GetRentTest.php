@@ -22,10 +22,10 @@ class GetRentTest extends TestCase
     public function testState()
     {
         $data = $this->request->rent()->state();
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
         $first = $data->first();
-        $this->assertInternalType('array', $first->toArray());
-        $this->assertInternalType('array', $first->toArray()['messages']);
+        $this->assertIsArray($first->toArray());
+        $this->assertIsArray($first->toArray()['messages']);
 //        $this->assertArrayHasKey('tzid', $data->toArray());
     }
 
@@ -35,7 +35,7 @@ class GetRentTest extends TestCase
         $data = $this->request->rent()->stateOne(
             $data = $this->request->rent()->state()->first()->tzid
         );
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
     }
 
     public function testClose()
@@ -46,13 +46,13 @@ class GetRentTest extends TestCase
     public function testGet()
     {
         $data = $this->request->rent()->get();
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
     }
 
     public function testTariffs()
     {
         $data = $this->request->rent()->tariffs();
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
         $this->assertArrayHasKey('code', $data->first()->toArray());
     }
 

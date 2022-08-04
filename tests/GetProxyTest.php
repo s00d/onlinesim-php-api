@@ -22,9 +22,9 @@ class GetProxyTest extends TestCase
     public function testState()
     {
         $data = $this->request->proxy()->state();
-        $this->assertInternalType('array', $data->toArray());
+        $this->assertIsArray($data->toArray());
         $first = $data->first();
-        $this->assertInternalType('array', $first->toArray());
+        $this->assertIsArray($first->toArray());
         $this->assertArrayHasKey('tzid', $first->toArray());
     }
 

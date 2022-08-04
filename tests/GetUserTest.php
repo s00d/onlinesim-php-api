@@ -23,7 +23,7 @@ class GetUserTest extends TestCase
     public function testBalance()
     {
         $data = $this->request->user()->balance()->toArray();
-        $this->assertInternalType('array', $data);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('balance', $data);
         $this->assertArrayHasKey('zbalance', $data);
         $this->assertArrayHasKey('income', $data);
@@ -32,11 +32,11 @@ class GetUserTest extends TestCase
     public function testProfile()
     {
         $data = $this->request->user()->profile()->toArray();
-        $this->assertInternalType('array', $data);
-        $this->assertInternalType('int', $data['id']);
+        $this->assertIsArray($data);
+        $this->assertIsInt( $data['id']);
         $this->assertArrayHasKey('apikey', $data);
         $this->assertArrayHasKey('email', $data);
-        $this->assertInternalType('array', $data['payment']);
-        $this->assertInternalType('int', $data['payment']['id']);
+        $this->assertIsArray($data['payment']);
+        $this->assertIsInt($data['payment']['id']);
     }
 }

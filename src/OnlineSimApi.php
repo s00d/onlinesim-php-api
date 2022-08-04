@@ -23,6 +23,11 @@ class OnlineSimApi
         $this->request = new Request($apiKey, $locale, $dev_id);
     }
 
+    public function setIo() {
+        $this->request->setIo();
+        return $this;
+    }
+
     /**
      * @return GetUser
      */
