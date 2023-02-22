@@ -8,7 +8,7 @@ use s00d\OnlineSimApi\Exceptions\RequestException;
 
 class Request
 {
-    private $url = 'https://onlinesim.ru/api/';
+    private $url = 'https://onlinesim.host/api/';
     private $apiKey;
     private $dev_id;
     private $locale;
