@@ -1,0 +1,8 @@
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+    tmpDir: vendor/.phpstan
+    # Response shapes are documented, not enforced at runtime (they come from JSON): tests and normalisers check them.
+    treatPhpDocTypesAsCertain: false
