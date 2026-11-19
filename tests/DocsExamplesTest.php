@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace s00d\OnlineSimApi\Tests;
 
+use s00d\OnlineSimApi\Mock\MockOnlineSim;
 use s00d\OnlineSimApi\OnlineSim;
 use s00d\OnlineSimApi\Transport\CurlTransport;
 
@@ -19,6 +20,7 @@ final class DocsExamplesTest extends TestCase
     private const ENTRY_POINTS = [
         'new OnlineSim' => [OnlineSim::class, '__construct'],
         'new CurlTransport' => [CurlTransport::class, '__construct'],
+        'new MockOnlineSim' => [MockOnlineSim::class, '__construct'],
         'parseWebhook' => 's00d\OnlineSimApi\parseWebhook',
     ];
 
@@ -82,7 +84,7 @@ final class DocsExamplesTest extends TestCase
     }
 
     /**
-     * SDK calls in a token stream: `$client->section->method(`, `new OnlineSim(`, `parseWebhook(`, …
+     * SDK calls in a token stream: `$client->section->method(`, `$mock->method(`, `new OnlineSim(`, `parseWebhook(`, …
      *
      * @param array<\PhpToken> $tokens
      *
@@ -102,6 +104,11 @@ final class DocsExamplesTest extends TestCase
                 $label = "\$client->{$section}->{$method}()";
                 $target = [self::SECTIONS[$section] ?? 'unknown section', $method];
                 $open = $i + 5;
+            } elseif ($token->is(T_VARIABLE) && $token->text === '$mock' && self::text($tokens, $i + 1, 3) === ['->', '?', '(']) {
+                $method = $tokens[$i + 2]->text;
+                $label = "\$mock->{$method}()";
+                $target = [MockOnlineSim::class, $method];
+                $open = $i + 3;
             } elseif ($token->is(T_NEW) && isset($tokens[$i + 2]) && $tokens[$i + 2]->text === '(') {
                 $label = "new {$tokens[$i + 1]->text}";
                 $target = self::ENTRY_POINTS[$label] ?? null;

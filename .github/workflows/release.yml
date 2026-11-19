@@ -1,0 +1,45 @@
+name: release
+
+# A version tag (`X.Y.Z`, no `v`) runs the full CI, checks the tag against CHANGELOG.md and creates the GitHub
+# release from that version's changelog section. No publish step: Packagist picks the tag up by webhook.
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # composer.json carries no version (Packagist takes it from the tag): the changelog is the source.
+      - name: Check tag == CHANGELOG version, extract notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
+          if [ "$version" != "$TAG" ]; then
+            echo "::error::tag $TAG does not match the latest CHANGELOG.md entry $version"
+            exit 1
+          fi
+          awk -v v="## [$TAG]" 'index($0, v) == 1 {on = 1; next} on && /^## \[/ {exit} on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          test -s "$RUNNER_TEMP/notes.md"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "release $TAG exists, skipping"
+          else
+            gh release create "$TAG" --title "$TAG" --latest --notes-file "$RUNNER_TEMP/notes.md"
+          fi

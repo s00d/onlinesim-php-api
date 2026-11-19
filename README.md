@@ -23,4 +23,23 @@ echo "enter {$order['number']} in the app\n";
 echo 'code: ', $client->numbers->waitCode($order['tzid']), "\n";
 ```
 
+## Testing
+
+`MockOnlineSim` is a built-in offline fake of the API: test your integration without network, key or money.
+More in the [testing guide](https://s00d.github.io/onlinesim-php-api/testing).
+
+```php
+use s00d\OnlineSimApi\Mock\MockOnlineSim;
+
+$mock = new MockOnlineSim(balance: 10);
+$client = $mock->client();
+
+$tzid = $client->numbers->get('google', 44);
+$mock->addSmsAfter($tzid, 'Your code: 123-456', 2); // arrives on the third poll
+$code = $client->numbers->waitCode($tzid, interval: 0);
+
+assert($code === '123456');
+assert($mock->balance() === 9.8);
+```
+
 Documentation: **https://s00d.github.io/onlinesim-php-api/** · Changes: [CHANGELOG.md](CHANGELOG.md) · License: Apache-2.0

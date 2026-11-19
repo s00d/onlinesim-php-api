@@ -1,16 +1,21 @@
 {
     "name": "s00d/onlinesim-api",
     "description": "PHP client for the OnlineSim API: SMS numbers, rent, account and free numbers.",
-    "keywords": ["onlinesim", "sms", "api", "client"],
-    "type": "library",
     "license": "Apache-2.0",
-    "homepage": "https://s00d.github.io/onlinesim-php-api/",
+    "type": "library",
+    "keywords": [
+        "onlinesim",
+        "sms",
+        "api",
+        "client"
+    ],
     "authors": [
         {
             "name": "s00d",
             "email": "Virus191288@gmail.com"
         }
     ],
+    "homepage": "https://s00d.github.io/onlinesim-php-api/",
     "support": {
         "issues": "https://github.com/s00d/onlinesim-php-api/issues",
         "source": "https://github.com/s00d/onlinesim-php-api",
@@ -22,6 +27,7 @@
         "ext-json": "*"
     },
     "require-dev": {
+        "ergebnis/composer-normalize": "^2.58",
         "friendsofphp/php-cs-fixer": "^3.64",
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^10.5 || ^11.0"
@@ -39,13 +45,16 @@
             "s00d\\OnlineSimApi\\Tests\\": "tests/"
         }
     },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true
+        },
+        "sort-packages": true
+    },
     "scripts": {
-        "test": "phpunit",
         "analyse": "phpstan analyse --memory-limit=1G",
         "cs": "php-cs-fixer check --diff",
-        "cs-fix": "php-cs-fixer fix"
-    },
-    "config": {
-        "sort-packages": true
+        "cs-fix": "php-cs-fixer fix",
+        "test": "phpunit"
     }
 }

@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0]
+
+### Added
+
+- `MockOnlineSim` (`s00d\OnlineSimApi\Mock\MockOnlineSim`): a built-in, in-process fake of the OnlineSim API for testing integrations offline — no network, key, money or clock. `$mock->client()` returns a normal `OnlineSim` wired to it; the mock is itself a `Transport` (`$mock->transport`). It answers every endpoint the SDK calls like the real backend (HTTP 456 for a wrong key, string/int `response`, decimal-string money, `[]` for empty maps) and keeps balance, operations and rents. Test helpers: `addSms`, `addSmsAfter` (lets `waitCode` run with `interval: 0`), `failNext`, `failNextTransport`, `setBalance`, `balance`, `operations`, `rents`, `requests`, `reset`. Part of the package (autoloaded only when used). See the [testing guide](https://s00d.github.io/onlinesim-php-api/testing).
+- Packaging checks in CI: `composer validate --strict`, `composer normalize --dry-run` (ergebnis/composer-normalize), and a smoke test that installs the `git archive` of the tree into an empty Composer project and runs the README "Testing" example on PHP 8.1 and 8.4.
+- Release workflow: a version tag runs the CI and creates the GitHub release from this changelog (Packagist updates by webhook).
+
+### Changed
+
+- `composer.json` normalized (key order only).
+
 ## [2.0.0]
 
 A rewrite. The public API changed; see the [docs](https://s00d.github.io/onlinesim-php-api/).
