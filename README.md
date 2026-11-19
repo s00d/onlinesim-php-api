@@ -1,24 +1,26 @@
-# Onlinesim PHP API
+# onlinesim-php-api
 
-[packagist](https://packagist.org/packages/s00d/onlinesim-api)
+[![Packagist](https://img.shields.io/packagist/v/s00d/onlinesim-api.svg)](https://packagist.org/packages/s00d/onlinesim-api)
+[![CI](https://github.com/s00d/onlinesim-php-api/actions/workflows/ci.yml/badge.svg)](https://github.com/s00d/onlinesim-php-api/actions/workflows/ci.yml)
 
-Wrapper for automatic reception of SMS-messages by onlinesim.ru
+PHP client for the [OnlineSim](https://onlinesim.io) API: SMS numbers, rent, account and free numbers.
+PHP 8.1+, ext-curl, no runtime dependencies.
 
-## Installation
-
-Require this package in your `composer.json` or install it by running:
-```
+```bash
 composer require s00d/onlinesim-api
 ```
 
-## Documentation
+```php
+use s00d\OnlineSimApi\OnlineSim;
 
-All documentation is in the wiki of this project - **[Documentation](https://github.com/s00d/onlinesim-php-api/wiki)**
+$client = new OnlineSim(apiKey: getenv('ONLINESIM_KEY') ?: null);
 
-## Responses
+$balance = $client->user->balance();
+echo 'available: ', $balance['balance'] - $balance['zbalance'], " USD\n";
 
-All responses from the server are described in the folder Responses
+$order = $client->numbers->getWithNumber('google', 44);
+echo "enter {$order['number']} in the app\n";
+echo 'code: ', $client->numbers->waitCode($order['tzid']), "\n";
+```
 
-## Bugs
-
-If you have any problems, please create Issues [here](https://github.com/s00d/onlinesim-php-api/issues)
+Documentation: **https://s00d.github.io/onlinesim-php-api/** · Changes: [CHANGELOG.md](CHANGELOG.md) · License: Apache-2.0

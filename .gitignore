@@ -1,2 +1,11 @@
 /vendor/
+/composer.lock
 /.env
+.DS_Store
+
+# docs site (standalone package in docs/)
+/docs/node_modules
+/docs/.nuxt
+/docs/.output
+/docs/.data
+/docs/dist
