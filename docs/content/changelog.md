@@ -7,6 +7,12 @@ navigation:
 
 The full history is in [CHANGELOG.md](https://github.com/s00d/onlinesim-php-api/blob/master/CHANGELOG.md).
 
+## 2.1.1
+
+- Fixed against the current API: `waitCode` no longer fails on an operation without `response`; PHPStan types of `Profile` `number`/`country`, optional `Operation` `response`, rent SMS `code` `0` for `notify` SMS, nullable free-list and payment fields.
+- `waitCode` retries `TRY_AGAIN_LATER` (rate limit), `ERROR_UNDEFINED` and `INTERVAL_CONCURRENT_REQUESTS_ERROR`.
+- `MockOnlineSim` follows the backend more closely: rent reservation and confirmation, `setOperationRevise` and `closeRentNum` answers, missing vs wrong key — see [Testing](/testing).
+
 ## 2.1.0
 
 - New: `MockOnlineSim`, an offline fake of the API for your tests — see [Testing](/testing).

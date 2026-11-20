@@ -22,7 +22,7 @@ public function list(?int $country = null, string|int|null $number = null, ?int 
 
 `FreeList`:
 
-- `countries`: `list<['country', 'country_text', 'country_original']>`
+- `countries`: `list<['country', 'country_text', 'country_original']>` (`country_text`/`country_original` may be `null`)
 - `numbers`: `['country', 'country_original', 'full_number', 'data_humans', 'is_archive']` keyed by the short number (PHP turns numeric keys into `int`)
 - `messages`: a paginator of `['id', 'text', 'in_number', 'my_number', 'code', 'created_at', 'data_humans']` plus `number` and `country`; `code` is `-` when no code was found
 

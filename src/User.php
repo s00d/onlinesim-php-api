@@ -25,8 +25,8 @@ use s00d\OnlineSimApi\Exception\TransportError;
  *     number_country?: int|null,
  *     number_reject?: array<array-key, string>|null,
  *     webhook_url?: string|null,
- *     number?: string|null,
- *     country?: int|null,
+ *     number?: int|null,
+ *     country?: string|null,
  *     number_region?: int|null,
  *     is_api?: bool,
  *     active?: string,
@@ -59,9 +59,9 @@ use s00d\OnlineSimApi\Exception\TransportError;
  * @phpstan-type PaymentOrder array{
  *     id: int,
  *     sum: string,
- *     currency: string,
+ *     currency: string|null,
  *     stat: int,
- *     form_text?: string,
+ *     form_text?: string|null,
  *     status_text?: string,
  *     created_at: string,
  *     ...
@@ -104,7 +104,8 @@ final class User
     }
 
     /**
-     * Balance in USD. `balance` includes the frozen `zbalance`: available = balance − zbalance.
+     * Balance in USD. `balance` includes the frozen `zbalance` (numbers and unconfirmed rents in progress; may be
+     * negative): available = balance − max(zbalance, 0).
      *
      * @return Balance
      *
@@ -141,7 +142,9 @@ final class User
     }
 
     /**
-     * Top-up orders (paginated, newest first) and the available payment methods.
+     * Top-up orders (paginated, newest first) and the available payment methods. `paylist` maps a group id to its
+     * methods; it is a list when the ids are 0, 1, 2… (the server sends a JSON array then). Order `currency` and
+     * `form_text` may be `null`.
      *
      * @return PaymentHistory
      *
@@ -150,6 +153,7 @@ final class User
     public function paymentHistory(int $page = 1): array
     {
         $res = $this->requester->call('getPaymentHistory.php', ['page' => $page]);
+        // A JSON array `paylist` (ids 0..n) is kept as the list it decodes to; only a missing value becomes `[]`.
         $res['paylist'] = Normalize::map($res['paylist'] ?? null);
 
         /** @var PaymentHistory $res */

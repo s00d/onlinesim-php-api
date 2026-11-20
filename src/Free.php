@@ -10,8 +10,8 @@ use s00d\OnlineSimApi\Exception\TransportError;
 /**
  * Public free numbers: `$client->free`. No key needed.
  *
- * @phpstan-type FreeCountry array{country: int, country_text: string, country_original: string}
- * @phpstan-type FreeNumber array{country: int, country_original: string, full_number: string, data_humans: string, is_archive: bool}
+ * @phpstan-type FreeCountry array{country: int, country_text: string|null, country_original: string|null}
+ * @phpstan-type FreeNumber array{country: int, country_original: string|null, full_number: string, data_humans: string, is_archive: bool}
  * @phpstan-type FreeMessage array{
  *     id: int,
  *     text: string,

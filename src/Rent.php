@@ -11,7 +11,7 @@ use s00d\OnlineSimApi\Exception\TransportError;
 /**
  * Rented numbers: `$client->rent`.
  *
- * @phpstan-type RentSms array{id: int, service: string, text: string, code: string, created_at: string}
+ * @phpstan-type RentSms array{id: int, service: string, text: string, code: string|int, created_at: string}
  * @phpstan-type RentItem array{
  *     tzid: int,
  *     status: int,
@@ -64,6 +64,10 @@ final class Rent
     /**
      * Rent a number for `$days` days. `$extension = false` makes the rent non-extendable for good.
      *
+     * The price is reserved (it shows in `zbalance`): the rent starts with `status` 0 and `checked` false and waits up
+     * to 20 minutes for its first SMS. The first SMS that is not a `notify` notice confirms it (`status` 1) and charges
+     * the price. Some countries (`confirm` in `tariffs()`, e.g. US) are confirmed and charged at once.
+     *
      * @return RentItem
      *
      * @throws NoNumberError|ApiError|TransportError
@@ -105,7 +109,9 @@ final class Rent
     }
 
     /**
-     * Extend a rent by `$days` days (only rents created with `extension: true`).
+     * Extend a rent by `$days` days and charge the balance at once (only confirmed rents created with `extension: true`).
+     * Every refusal (unknown tzid, not confirmed yet or closed, not extendable, unknown period, a repeat within 10 s) is
+     * `ApiError('TRY_AGAIN_LATER')`; low balance is `WARNING_LOW_BALANCE`.
      *
      * @return RentItem
      *
@@ -151,7 +157,10 @@ final class Rent
     }
 
     /**
-     * Return the number before the rent period ends.
+     * Return the number before the rent period ends. Unknown tzid: `ApiError('ERROR_NO_OPERATIONS')`. An unconfirmed rent
+     * (`status` 0) without any SMS can be closed only after 120 s (`NO_COMPLETE_TZID`); then, or with only `notify` SMS,
+     * the reservation is released. With a real SMS it is confirmed (charged) and closed. A confirmed rent closes without
+     * a refund. US numbers: `NO_CLOSE_RENT_US`.
      *
      * @return true
      *
@@ -165,7 +174,9 @@ final class Rent
     }
 
     /**
-     * Server shape → `RentItem`: `sum` is a decimal string, `extend` may be `[]`, `messages` must be a list.
+     * Server shape → `RentItem`: `sum` is a number (getRentNum, extendRentState) or a decimal string (getRentState),
+     * `extend` may be `[]`, `messages` must be a list. Message `code` stays as sent: a string (`''` without a code) or
+     * the integer `0` for a `notify` SMS.
      *
      * @return RentItem
      */

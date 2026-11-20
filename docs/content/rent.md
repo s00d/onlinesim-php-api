@@ -7,14 +7,16 @@ navigation:
 
 A rent keeps a number for `days` days. Its SMS come in `messages`, newest first.
 
+`get` reserves the price (it shows in `zbalance`): the rent starts with `status` `0` and `checked` `false` and waits up to 20 minutes for its first SMS. The first SMS that is not a `notify` notice confirms it (`status` `1`) and charges the price; without one the rent closes and the reservation is released. Some countries (`confirm` in `tariffs`, e.g. US numbers) are confirmed and charged at once.
+
 `RentItem`: `['tzid', 'status', 'number', 'country', 'sum', 'days', 'hours', 'time', 'time_seconds'?, 'extension', 'extend', 'messages', 'start_time', 'stop_time', 'day_extend'?, …]` —
-`sum` is the price paid in USD (a `float`; the server sends a decimal string), `time` minutes left, `time_seconds` seconds left,
+`sum` is the cost in USD incl. extensions (a `float`; the server sends a number, or a decimal string in `state`), `time` minutes left, `time_seconds` seconds left,
 `extension` `0` not extendable / `1` extendable / `2` auto-extension, `extend` maps days to the extension price (`[]` when not extendable),
-`messages` is `list<RentSms>`: `['id', 'service', 'text', 'code', 'created_at']`.
+`messages` is `list<RentSms>`: `['id', 'service', 'text', 'code', 'created_at']` — `code` is `''` when no code was found and the integer `0` for a `notify` SMS (a prohibited sender); it is kept as sent (`string|int`).
 
 ## get
 
-Rent a number and charge the balance.
+Rent a number. The price is reserved; the first SMS charges it.
 
 ```php
 public function get(int $country = 7, int $days = 1, bool $extension = true): array
@@ -63,7 +65,7 @@ Errors: `ApiError` `ERROR_NO_OPERATIONS` for an unknown tzid.
 
 ## extend
 
-Extend a rent by `days` days and charge the balance. Only rents created with `extension: true`.
+Extend a rent by `days` days and charge the balance at once. Only confirmed rents (`status` `1` or `4`) created with `extension: true`.
 
 ```php
 public function extend(int $tzid, int $days = 1): array
@@ -74,11 +76,11 @@ $rent = $client->rent->extend($tzid, days: 3);
 echo $rent['stop_time'];
 ```
 
-Errors: `ApiError` `TRY_AGAIN_LATER` (not extendable, unknown tzid or period, a repeat within 10 s), `WARNING_LOW_BALANCE`.
+Errors: `ApiError` `TRY_AGAIN_LATER` (unknown tzid, not confirmed yet or closed, not extendable, unknown period, a repeat within 10 s), `WARNING_LOW_BALANCE`.
 
 ## close
 
-Return the number before the period ends. A rent that is not confirmed yet and has no SMS can be closed only after 120 s; US numbers cannot be closed early. Returns `true`.
+Return the number before the period ends. A rent that is not confirmed yet (`status` `0`) and has no SMS can be closed only after 120 s; then, or with only `notify` SMS, the reservation is released. With a real SMS the rent is confirmed (charged) and closed. A confirmed rent closes without a refund. US numbers cannot be closed early. Returns `true`.
 
 ```php
 public function close(int $tzid): bool

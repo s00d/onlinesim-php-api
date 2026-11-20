@@ -30,6 +30,24 @@ final class RentTest extends TestCase
         self::assertSame('195895', $rent['messages'][0]['code'] ?? null);
     }
 
+    public function testDecodesTheSpecShapesSumNumberOrStringCode0ForANotifySms(): void
+    {
+        $item = [
+            'status' => 0,
+            'checked' => false,
+            'sum' => 1.5,
+            'messages' => [
+                ['id' => 2, 'service' => 'notify', 'text' => 'Messages from this sender are not accepted', 'code' => 0, 'created_at' => '2026-11-19 10:01:12'],
+                ['id' => 1, 'service' => 'Google', 'text' => 'G-070051', 'code' => '070051', 'created_at' => '2026-11-19 10:01:00'],
+            ],
+        ] + self::list()[0];
+        $client = $this->client([['json' => ['response' => 1, 'item' => $item]], ['json' => ['response' => 1, 'list' => [['sum' => '2.40'] + $item]]]]);
+        $rent = $client->rent->get(7, 3);
+        self::assertSame([0, false, 1.5], [$rent['status'], $rent['checked'] ?? null, $rent['sum']]);
+        self::assertSame([0, '070051'], array_column($rent['messages'], 'code'));
+        self::assertSame(2.4, $client->rent->stateOne($rent['tzid'])['sum']);
+    }
+
     public function testGetWithExtensionFalseSendsExtension0(): void
     {
         $client = $this->client([['json' => ['response' => 1, 'item' => self::list()[1]]]]);

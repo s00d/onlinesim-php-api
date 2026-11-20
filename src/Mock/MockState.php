@@ -16,7 +16,7 @@ namespace s00d\OnlineSimApi\Mock;
  *
  * @phpstan-type MockPrices array<int, array<string, float|int>>
  * @phpstan-type MockRentTariff array{days: array<int, float|int>, extend: int}
- * @phpstan-type MockSms array{service: string, text: string, code: string|null}
+ * @phpstan-type MockSms array{service: string, text: string, code: string|null, at: int}
  * @phpstan-type MockOperation array{
  *     tzid: int,
  *     service: string,
@@ -27,12 +27,14 @@ namespace s00d\OnlineSimApi\Mock;
  *     messages: list<MockSms>,
  *     cursor: int,
  * }
- * @phpstan-type MockRentSms array{service: string, text: string, code: string|null, id: int, created_at: string}
+ * @phpstan-type MockRentSms array{service: string, text: string, code: string|null, at: int, id: int, created_at: string}
  * @phpstan-type MockRent array{
  *     tzid: int,
  *     country: int,
  *     number: string,
  *     days: int,
+ *     initialDays: int,
+ *     status: 0|1,
  *     sum: float,
  *     extension: bool,
  *     messages: list<MockRentSms>,
@@ -43,7 +45,7 @@ namespace s00d\OnlineSimApi\Mock;
  *     user_id: int,
  *     webhook_url: string,
  *     type: 'receiving_sms'|'rent_sms',
- *     params: array<string, string|int|null>,
+ *     params: array<string, string|int>,
  *     status: 'success',
  *     error: null,
  *     created_at: string,
@@ -68,12 +70,18 @@ final class MockState
     /** Seconds an operation stays open, as reported in `time`. The mock has no clock, so it never runs down. */
     public const OPERATION_TIME = 1200;
 
+    /** Minutes an unconfirmed rent waits for its first SMS (`stop_time` = start + this). */
+    public const RENT_FIRST_SMS_MINUTES = 20;
+
+    /** Sender of a rent SMS from a prohibited sender: it gets the integer `code` `0` and does not confirm the rent. */
+    public const NOTIFY = 'notify';
+
     /** 2026-01-01 00:00:00 UTC. */
     private const EPOCH = 1_767_225_600;
 
     /** Total balance incl. the frozen part, mills. */
     public int $balance = 0;
-    /** Frozen by open operations, mills. */
+    /** Frozen by open operations and unconfirmed rents, mills. */
     public int $frozen = 0;
     /** @var array<int, MockOperation> tzid → operation, oldest first */
     public array $operations = [];
@@ -196,21 +204,31 @@ final class MockState
         $code = self::extractCode($text);
         $op = $this->operations[$tzid] ?? null;
         if ($op !== null && $op['status'] !== 'TZ_OVER_OK') {
-            $sms = ['service' => $service ?? $op['service'], 'text' => $text, 'code' => $code];
+            $sms = ['service' => $service ?? $op['service'], 'text' => $text, 'code' => $code, 'at' => $this->seq];
             $op['messages'][] = $sms;
             $op['status'] = 'TZ_NUM_ANSWER';
             $this->operations[$tzid] = $op;
-            $this->webhook('receiving_sms', $tzid, $op['country'], $op['number'], $sms);
+            // Activation: `+<digits>`, seconds left, the order time.
+            $this->webhook('receiving_sms', $tzid, $op['country'], $op['number'], $sms, self::OPERATION_TIME, self::stamp($op['tzid']));
 
             return true;
         }
         $rent = $this->rents[$tzid] ?? null;
         if ($rent !== null) {
-            $sms = ['service' => $service ?? 'other', 'text' => $text, 'code' => $code];
             $id = $this->nextId();
+            $sms = ['service' => $service ?? 'other', 'text' => $text, 'code' => $code, 'at' => $id];
             $rent['messages'][] = $sms + ['id' => $id, 'created_at' => self::stamp($id)];
+            if ($rent['status'] === 0 && $sms['service'] !== self::NOTIFY) {
+                // The first real SMS confirms the rent: the reservation is charged.
+                $cost = self::toMills($rent['sum']);
+                $this->frozen -= $cost;
+                $this->balance -= $cost;
+                $rent['status'] = 1;
+            }
             $this->rents[$tzid] = $rent;
-            $this->webhook('rent_sms', $tzid, $rent['country'], $rent['number'], $sms);
+            // Rent: full number in digits without `+`, minutes left, the SMS time.
+            $minutesLeft = $rent['status'] === 1 ? $rent['days'] * 24 * 60 : self::RENT_FIRST_SMS_MINUTES;
+            $this->webhook('rent_sms', $tzid, $rent['country'], "{$rent['country']}{$rent['number']}", $sms, $minutesLeft, self::stamp($id));
 
             return true;
         }
@@ -254,12 +272,12 @@ final class MockState
      * @param 'receiving_sms'|'rent_sms' $type
      * @param MockSms                    $sms
      */
-    private function webhook(string $type, int $tzid, int $country, string $number, array $sms): void
+    private function webhook(string $type, int $tzid, int $country, string $number, array $sms, int $timeLeft, string $timeStart): void
     {
         if ($this->webhookUrl === null) {
             return;
         }
-        $time = self::stamp($this->seq);
+        $time = self::stamp($sms['at']);
         $this->webhookLogs[] = [
             'id' => count($this->webhookLogs) + 1,
             'user_id' => self::USER_ID,
@@ -273,9 +291,9 @@ final class MockState
                 'number' => $number,
                 'sender' => $sms['service'],
                 'message' => $sms['text'],
-                'code' => $sms['code'],
-                'time_start' => $time,
-                'time_left' => self::OPERATION_TIME,
+                'code' => $sms['code'] ?? '',
+                'time_start' => $timeStart,
+                'time_left' => $timeLeft,
             ],
             'status' => 'success',
             'error' => null,

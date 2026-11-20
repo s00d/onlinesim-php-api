@@ -96,6 +96,31 @@ final class NumbersTest extends TestCase
         self::assertSame(['tzid' => '1520'], $this->query());
     }
 
+    public function testBanAfterAnSmsSurfaces0AsApiErrorWithAReadableMessage(): void
+    {
+        $client = $this->client([['json' => ['response' => '0']]]);
+        $error = $this->caught(static fn () => $client->numbers->ban(1520));
+        self::assertInstanceOf(ApiError::class, $error);
+        self::assertSame(['0', 'Ban not applied: the operation already has an SMS'], [$error->errorCode, $error->getMessage()]);
+    }
+
+    public function testNextAcceptsTheTzidStringAnswerErrorWrongTzidForAForeignTzid(): void
+    {
+        $client = $this->client([['json' => ['tzid' => '1520', 'response' => '1']], ['json' => ['response' => 'ERROR_WRONG_TZID']]]);
+        self::assertTrue($client->numbers->next(1520));
+        $error = $this->caught(static fn () => $client->numbers->next(1));
+        self::assertInstanceOf(ApiError::class, $error);
+        self::assertSame('ERROR_WRONG_TZID', $error->errorCode);
+    }
+
+    public function testStateOneAcceptsAnOperationWithoutResponse(): void
+    {
+        $client = $this->client([['json' => [['tzid' => 5, 'country' => 7, 'service' => 'vkcom', 'sum' => 0.5, 'time' => 900, 'form' => 'index']]]]);
+        $op = $client->numbers->stateOne(5);
+        self::assertSame(5, $op['tzid']);
+        self::assertArrayNotHasKey('response', $op);
+    }
+
     public function testClose(): void
     {
         $client = $this->client([['json' => ['response' => 1, 'tzid' => 1520]]]);
