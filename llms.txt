@@ -1,0 +1,17 @@
+# onlinesim-php-api
+
+> PHP 8.1+ client for the OnlineSim API, on ext-curl with no runtime dependencies.
+
+## Documentation Sets
+
+- [onlinesim-php-api — full docs](https://s00d.github.io/onlinesim-php-api/llms-full.txt): Complete documentation of the onlinesim-php-api SDK.
+
+## Documentation
+
+- [Changelog](https://s00d.github.io/onlinesim-php-api/raw/changelog.md): Release notes of onlinesim-php-api.
+- [Free numbers](https://s00d.github.io/onlinesim-php-api/raw/free.md): Public numbers and their SMS — $client->free. No API key needed.
+- [Numbers](https://s00d.github.io/onlinesim-php-api/raw/numbers.md): Order a number, read its SMS, close it — $client->numbers.
+- [Rent](https://s00d.github.io/onlinesim-php-api/raw/rent.md): Rent a number for days and receive every SMS sent to it — $client->rent.
+- [Testing](https://s00d.github.io/onlinesim-php-api/raw/testing.md): Test your integration offline with MockOnlineSim — no network, key or money.
+- [User](https://s00d.github.io/onlinesim-php-api/raw/user.md): Balance, profile, payments and the webhook URL — $client->user.
+- [Webhooks](https://s00d.github.io/onlinesim-php-api/raw/webhooks.md): Receive SMS as HTTP callbacks and parse them with parseWebhook.
