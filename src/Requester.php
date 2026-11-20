@@ -69,7 +69,8 @@ final class Requester
         } catch (\JsonException $e) {
             throw new TransportError("HTTP {$status}: response is not JSON", $status, self::excerpt($text), $e);
         }
-        // The body is checked before the status: a wrong key is HTTP 456 with {"response":"ERROR_WRONG_KEY"}.
+        // The body is checked before the status: a wrong key is HTTP 456 with {"response":"ERROR_WRONG_KEY"},
+        // the rate limit HTTP 429 with {"response":"TRY_AGAIN_LATER"}.
         if (is_array($data) && !array_is_list($data) && array_key_exists('response', $data)) {
             return self::unwrap($data);
         }
@@ -109,7 +110,7 @@ final class Requester
         $code = is_scalar($response) ? (string) $response : 'UNKNOWN_ERROR';
         // Debug backends echo the code as `message`; prefer the readable fallback then.
         $message = isset($data['message']) && is_string($data['message']) && $data['message'] !== $code ? $data['message'] : null;
-        if ($code === 'NO_NUMBER' || $code === 'NO_NUMBER_FOR_FORWARD') {
+        if ($code === 'NO_NUMBER') {
             throw new NoNumberError($code, $message);
         }
 

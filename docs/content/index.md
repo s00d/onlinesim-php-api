@@ -21,7 +21,7 @@ use s00d\OnlineSimApi\OnlineSim;
 $client = new OnlineSim(apiKey: getenv('ONLINESIM_KEY') ?: null);
 
 $balance = $client->user->balance();
-echo 'available: ', $balance['balance'] - $balance['zbalance'], " USD\n";
+echo 'available: ', $balance['balance'] - max($balance['zbalance'], 0), " USD\n";
 
 $order = $client->numbers->getWithNumber('google', 44);
 echo "enter {$order['number']} in the app\n";
@@ -56,7 +56,7 @@ $client = new OnlineSim(
 
 Sections: [`$client->numbers`](/numbers), [`$client->rent`](/rent), [`$client->user`](/user), [`$client->free`](/free). Webhook bodies are parsed by the standalone function [`parseWebhook`](/webhooks).
 
-Results are arrays with the server's snake_case keys; their shapes are declared as PHPStan types on each section class (`Numbers`, `Rent`, `User`, `Free`), so PHPStan and IDEs know every key. Two things are normalised: money that the server sends as a decimal string (`balance`, rent `sum`) becomes a `float`, and a missing map becomes `[]`.
+Results are arrays with the server's snake_case keys; their shapes are declared as PHPStan types on each section class (`Numbers`, `Rent`, `User`, `Free`), so PHPStan and IDEs know every key. Two things are normalised: money that the server sends as a decimal string (`balance`, rent `sum` in `rent->state()`) becomes a `float`, and a missing map becomes `[]`. `paymentHistory()['paylist']` is left as sent: a list when its ids are 0, 1, 2…
 
 ### Transport
 
@@ -78,8 +78,8 @@ Every error extends `s00d\OnlineSimApi\Exception\OnlineSimError` (a `RuntimeExce
 
 | Class | When | Fields |
 |---|---|---|
-| `ApiError` | The API answered with an error code (also a wrong key, HTTP 456). | `errorCode`, `getMessage()` |
-| `NoNumberError` | `NO_NUMBER` / `NO_NUMBER_FOR_FORWARD`: no number right now. Subclass of `ApiError`. | `errorCode`, `getMessage()` |
+| `ApiError` | The API answered with an error code (also a wrong key, HTTP 456, and the rate limit, HTTP 429 `TRY_AGAIN_LATER`). | `errorCode`, `getMessage()` |
+| `NoNumberError` | `NO_NUMBER`: no number right now. Subclass of `ApiError`. | `errorCode`, `getMessage()` |
 | `TransportError` | Network error, request timeout, or a body that is not JSON. | `status` (`null` without a response), `body` (first 500 chars) |
 | `TimeoutError` | `waitCode` got no code within its `timeout`. | — |
 

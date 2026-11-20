@@ -31,22 +31,26 @@ final class MockOnlineSimTest extends TestCase
 
     // ----- auth and transport -----
 
-    public function testWrongOrMissingKeyIsHttp456WhichTheClientMapsToApiError(): void
+    public function testAWrongKeyIsHttp456AMissingKeyHttp200BothMapToApiError(): void
     {
         $mock = new MockOnlineSim();
         foreach (['nope', ''] as $apiKey) {
             $this->apiError(static fn () => $mock->client(apiKey: $apiKey)->user->balance(), 'ERROR_WRONG_KEY');
         }
-        $raw = $mock->send('GET', 'https://x.test/api/getBalance.php', [], null, 1.0);
-        self::assertSame(456, $raw->status);
+        $missing = $mock->send('GET', 'https://x.test/api/getBalance.php', [], null, 1.0);
+        self::assertSame([200, '{"response":"ERROR_WRONG_KEY"}'], [$missing->status, $missing->body]);
+        $wrong = $mock->send('GET', 'https://x.test/api/getBalance.php', ['Authorization' => 'Bearer nope'], null, 1.0);
+        self::assertSame(456, $wrong->status);
     }
 
-    public function testTariffsAndFreeNumbersNeedNoKey(): void
+    public function testTariffsAndFreeNumbersNeedNoKeyButASentWrongKeyIsStillHttp456(): void
     {
-        $client = (new MockOnlineSim())->client(apiKey: '');
+        $mock = new MockOnlineSim();
+        $client = $mock->client(apiKey: '');
         self::assertSame(44, $client->numbers->tariffsOne(44)['code']);
         self::assertSame(7, $client->rent->tariffsOne(7)['code']);
         self::assertSame(44, $client->free->list()['messages']['country']);
+        $this->apiError(static fn () => $mock->client(apiKey: 'nope')->free->list(), 'ERROR_WRONG_KEY');
     }
 
     public function testWorksAsTheTransportOfAClientBuiltByHandWithAnyBaseUrl(): void
@@ -80,7 +84,7 @@ final class MockOnlineSimTest extends TestCase
         $client = $mock->client();
         self::assertSame(1, $client->numbers->get('google', 44));
         self::assertSame(
-            ['tzid' => 2, 'number' => '+7900000002', 'country' => 7, 'time' => 1200, 'service' => 'vkcom'],
+            ['tzid' => 2, 'number' => '+7900000002', 'country' => 7, 'time' => 1200, 'service' => 'vkcom', 'title' => 'vkcom', 'response_text' => 'Waiting for SMS', 'guard_interval_remaining_seconds' => 0],
             $client->numbers->getWithNumber('vkcom'),
         );
         self::assertSame([null, '1'], array_map(static fn (array $r) => $r['query']['number'] ?? null, $mock->requests()));
@@ -115,18 +119,18 @@ final class MockOnlineSimTest extends TestCase
         $a = $client->numbers->get('google', 44);
         $b = $client->numbers->get('vkcom', 7);
         $one = $client->numbers->stateOne($a);
-        self::assertSame([$a, 'TZ_NUM_WAIT', '+44900000001', 0.2, 0], [$one['tzid'], $one['response'], $one['number'] ?? null, $one['sum'] ?? null, $one['guard_interval_remaining_seconds'] ?? null]);
+        self::assertSame([$a, 'TZ_NUM_WAIT', '+44900000001', 0.2, 0], [$one['tzid'], $one['response'] ?? null, $one['number'] ?? null, $one['sum'] ?? null, $one['guard_interval_remaining_seconds'] ?? null]);
         self::assertArrayNotHasKey('msg', $one);
 
         $mock->addSms($a, 'Your Google code is G-123 456. Do not share it.');
         $one = $client->numbers->stateOne($a);
-        self::assertSame(['TZ_NUM_ANSWER', '123456'], [$one['response'], $one['msg'] ?? null]);
+        self::assertSame(['TZ_NUM_ANSWER', '123456'], [$one['response'] ?? null, $one['msg'] ?? null]);
         self::assertSame('Your Google code is G-123 456. Do not share it.', $client->numbers->stateOne($a, messageToCode: false)['msg'] ?? null);
         self::assertSame([$b, $a], array_column($client->numbers->state(orderBy: OrderBy::Desc), 'tzid'));
 
         $client->numbers->close($a);
         $one = $client->numbers->stateOne($a);
-        self::assertSame(['TZ_OVER_OK', 0], [$one['response'], $one['time'] ?? null]);
+        self::assertSame(['TZ_OVER_OK', 0], [$one['response'] ?? null, $one['time'] ?? null]);
         $this->apiError(static fn () => $client->numbers->stateOne(999), 'ERROR_NO_OPERATIONS');
     }
 
@@ -139,7 +143,7 @@ final class MockOnlineSimTest extends TestCase
         self::assertSame('Welcome!', $client->numbers->stateOne($tzid)['msg'] ?? null);
         $client->numbers->next($tzid);
         $one = $client->numbers->stateOne($tzid);
-        self::assertSame('TZ_NUM_WAIT', $one['response']);
+        self::assertSame('TZ_NUM_WAIT', $one['response'] ?? null);
         self::assertArrayNotHasKey('msg', $one);
         $mock->addSms($tzid, 'code 98765');
         self::assertSame('98765', $client->numbers->stateOne($tzid)['msg'] ?? null);
@@ -147,7 +151,19 @@ final class MockOnlineSimTest extends TestCase
             [['service' => 'telegram', 'msg' => 'Welcome!'], ['service' => 'telegram', 'msg' => '98765']],
             $client->numbers->stateOne($tzid, msgList: true)['msg'] ?? null,
         );
-        self::assertTrue($client->numbers->next(424242)); // always succeeds, like the backend
+        self::assertCount(1, array_filter($mock->requests(), static fn (array $r) => $r['path'] === 'setOperationRevise.php'));
+    }
+
+    public function testNextAnswersTzidAsStringErrorWrongTzidForUnknownErrorNoTzidFor0(): void
+    {
+        $mock = new MockOnlineSim();
+        $client = $mock->client();
+        $tzid = $client->numbers->get('google', 44);
+        $res = $mock->send('GET', "https://x.test/api/setOperationRevise.php?tzid={$tzid}", ['Authorization' => 'Bearer mock-key'], null, 1.0);
+        self::assertSame(['tzid' => (string) $tzid, 'response' => '1'], json_decode($res->body, true));
+        $this->apiError(static fn () => $client->numbers->next(424242), 'ERROR_WRONG_TZID');
+        $this->apiError(static fn () => $client->numbers->next(0), 'ERROR_NO_TZID');
+        $this->apiError(static fn () => $client->numbers->close(0), 'ERROR_NO_TZID');
     }
 
     public function testCloseAfterSmsSpendsWithoutRefundsBanAfterSmsAnswers0(): void
@@ -223,42 +239,81 @@ final class MockOnlineSimTest extends TestCase
 
     // ----- rent -----
 
-    public function testRentGetStateExtendCloseNonExtendableRefused(): void
+    public function testRentGetReservesTheFirstSmsConfirmsAndChargesExtendChargesAtOnceClose(): void
     {
         $mock = new MockOnlineSim(balance: 10);
         $client = $mock->client();
         $rent = $client->rent->get(7, 3);
         self::assertSame(
-            [1, '900000001', 2.5, 3, 3 * 1440, 3 * 86400, 1, []],
-            [$rent['tzid'], $rent['number'], $rent['sum'], $rent['days'], $rent['time'], $rent['time_seconds'] ?? null, $rent['extension'], $rent['messages']],
+            [1, '900000001', 0, false, 2.5, 0, 20, 1200, 3, 3, 1, 0, []],
+            [$rent['tzid'], $rent['number'], $rent['status'], $rent['checked'] ?? null, $rent['sum'], $rent['days'], $rent['time'], $rent['time_seconds'] ?? null, $rent['rent'] ?? null, $rent['days_autoextend'] ?? null, $rent['extension'], $rent['guard_interval_remaining_seconds'] ?? null, $rent['messages']],
         );
         self::assertSame([1 => 1.0, 3 => 2.5, 7 => 5.0], $rent['extend']);
-        self::assertSame(7.5, $mock->balance());
+        // reserved: the total balance stays, the price is frozen
+        self::assertSame(10.0, $mock->balance());
+        self::assertSame(['balance' => 10.0, 'zbalance' => 2.5, 'income' => 0.0], $client->user->balance());
+        $this->apiError(static fn () => $client->rent->extend($rent['tzid']), 'TRY_AGAIN_LATER'); // not confirmed yet
 
         $mock->addSms($rent['tzid'], 'Bank: 777 888', service: 'bank');
         $mock->addSms($rent['tzid'], 'no code here');
         $state = $client->rent->stateOne($rent['tzid']);
+        self::assertSame([1, true, 3, 3 * 1440, 3 * 86400], [$state['status'], $state['checked'] ?? null, $state['days'], $state['time'], $state['time_seconds'] ?? null]);
         self::assertSame([['other', ''], ['bank', '777888']], array_map(static fn (array $m) => [$m['service'], $m['code']], $state['messages'])); // newest first
+        self::assertSame(7.5, $mock->balance());
+        self::assertSame(['balance' => 7.5, 'zbalance' => 0.0, 'income' => 0.0], $client->user->balance());
 
         $extended = $client->rent->extend($rent['tzid'], 1);
-        self::assertSame([4, 3.5], [$extended['days'], $extended['sum']]);
+        self::assertSame([4, 4, 3, 3.5], [$extended['days'], $extended['rent'] ?? null, $extended['days_autoextend'] ?? null, $extended['sum']]);
         self::assertSame(6.5, $mock->balance());
+        $this->apiError(static fn () => $client->rent->extend($rent['tzid'], 2), 'TRY_AGAIN_LATER'); // unknown period
+        $this->apiError(static fn () => $client->rent->extend(999), 'TRY_AGAIN_LATER'); // unknown tzid
 
         $fixed = $client->rent->get(7, 1, false);
-        self::assertSame([0, []], [$fixed['extension'], $fixed['extend']]);
+        $mock->addSms($fixed['tzid'], '1234');
+        $fixedState = $client->rent->stateOne($fixed['tzid']);
+        self::assertSame([0, []], [$fixedState['extension'], $fixedState['extend']]);
         $this->apiError(static fn () => $client->rent->extend($fixed['tzid']), 'TRY_AGAIN_LATER');
         self::assertSame([$rent['tzid'], $fixed['tzid']], array_column($client->rent->state(), 'tzid'));
 
-        $client->rent->close($fixed['tzid']);
+        $client->rent->close($fixed['tzid']); // confirmed: no refund
+        self::assertSame(5.5, $mock->balance());
         self::assertSame([$rent['tzid']], array_column($mock->rents(), 'tzid'));
         $this->apiError(static fn () => $client->rent->stateOne($fixed['tzid']), 'ERROR_NO_OPERATIONS');
-        $this->apiError(static fn () => $client->rent->close($fixed['tzid']), 'ERROR_WRONG_TZID');
+        $this->apiError(static fn () => $client->rent->close($fixed['tzid']), 'ERROR_NO_OPERATIONS');
+    }
+
+    public function testRentSumIsANumberInGetRentNumAndADecimalStringInGetRentStateOnTheWire(): void
+    {
+        $mock = new MockOnlineSim();
+        $auth = ['Authorization' => 'Bearer mock-key'];
+        /** @var array{item: array{sum: mixed}} $got */
+        $got = json_decode($mock->send('GET', 'https://x.test/api/rent/getRentNum.php?days=3', $auth, null, 1.0)->body, true);
+        self::assertSame(2.5, $got['item']['sum']);
+        /** @var array{list: list<array{sum: mixed}>} $listed */
+        $listed = json_decode($mock->send('GET', 'https://x.test/api/rent/getRentState.php', $auth, null, 1.0)->body, true);
+        self::assertSame('2.50', $listed['list'][0]['sum']);
+    }
+
+    public function testAnUnconfirmedRentCloseReleasesTheReservationNotifySmsHasCode0AndConfirmsNothing(): void
+    {
+        $mock = new MockOnlineSim(balance: 10, guardInterval: 120);
+        $client = $mock->client();
+        $rent = $client->rent->get(7, 3);
+        self::assertSame(120, $rent['guard_interval_remaining_seconds'] ?? null);
+        $this->apiError(static fn () => $client->rent->close($rent['tzid']), 'NO_COMPLETE_TZID');
+        $mock->addSms($rent['tzid'], 'Messages from this sender are not accepted', service: 'notify');
+        $state = $client->rent->stateOne($rent['tzid']);
+        self::assertSame([0, false, 0], [$state['status'], $state['checked'] ?? null, $state['guard_interval_remaining_seconds'] ?? null]);
+        self::assertSame(['notify', 0], [$state['messages'][0]['service'] ?? null, $state['messages'][0]['code'] ?? null]);
+        self::assertTrue($client->rent->close($rent['tzid']));
+        self::assertSame(10.0, $mock->balance()); // released, nothing charged
+        self::assertSame(['balance' => 10.0, 'zbalance' => 0.0, 'income' => 0.0], $client->user->balance());
     }
 
     public function testRentErrorsUnknownCountryUnknownDaysLowBalance(): void
     {
         $client = (new MockOnlineSim(balance: 1.5))->client();
-        $this->apiError(static fn () => $client->rent->get(44), 'NO_COUNTRY');
+        $this->apiError(static fn () => $client->rent->get(44), 'UNDEFINED_COUNTRY');
         $this->apiError(static fn () => $client->rent->get(7, 2), 'UNDEFINED_DAYS');
         $this->apiError(static fn () => $client->rent->get(7, 3), 'WARNING_LOW_BALANCE');
     }
@@ -270,8 +325,9 @@ final class MockOnlineSimTest extends TestCase
         $tzid = $client->rent->get()['tzid'];
         $mock->addSmsAfter($tzid, '6060', 1);
         self::assertSame([], $client->rent->stateOne($tzid)['messages']);
-        $message = $client->rent->state()[0]['messages'][0] ?? null;
-        self::assertSame(['6060', 'other'], [$message['code'] ?? null, $message['service'] ?? null]);
+        $listed = $client->rent->state()[0];
+        $message = $listed['messages'][0] ?? null;
+        self::assertSame([1, '6060', 'other'], [$listed['status'], $message['code'] ?? null, $message['service'] ?? null]);
         $count = [1 => 100, 3 => 100, 7 => 100];
         self::assertSame(
             [7 => ['code' => 7, 'enabled' => true, 'name' => 'russia', 'new' => false, 'position' => 7, 'count' => $count, 'days' => [1 => 1.0, 3 => 2.5, 7 => 5.0], 'extend' => 1, 'confirm' => false, 'ext_counts' => $count]],
@@ -289,8 +345,9 @@ final class MockOnlineSimTest extends TestCase
         $profile = $client->user->profile();
         self::assertSame([1, 'secret'], [$profile['id'], $profile['apikey'] ?? null]);
         self::assertNull(array_key_exists('webhook_url', $profile) ? $profile['webhook_url'] : 'missing');
-        $e = $this->apiError(static fn () => $client->user->setWebhookUrl('ftp://x'), 'VALIDATION_ERROR');
+        $e = $this->apiError(static fn () => $client->user->setWebhookUrl('not a url'), 'VALIDATION_ERROR');
         self::assertSame('The webhook url must be a valid URL.', $e->getMessage());
+        self::assertTrue($client->user->setWebhookUrl('ftp://x')); // any scheme://… URL
         $client->user->setWebhookUrl('https://example.com/hook');
         $requests = $mock->requests();
         $last = end($requests);
@@ -301,12 +358,17 @@ final class MockOnlineSimTest extends TestCase
         $mock->addSms($tzid, 'code 1234');
         $rent = $client->rent->get();
         $mock->addSms($rent['tzid'], 'code 5678');
+        $mock->addSms($rent['tzid'], 'no code');
         $logs = $client->user->webhookLogs();
-        self::assertSame([2, 1, 10], [$logs['total'], $logs['current_page'], $logs['per_page']]);
+        self::assertSame([3, 1, 10], [$logs['total'], $logs['current_page'], $logs['per_page']]);
         self::assertSame(
-            [['rent_sms', $rent['tzid'], '5678'], ['receiving_sms', $tzid, '1234']],
+            [['rent_sms', $rent['tzid'], ''], ['rent_sms', $rent['tzid'], '5678'], ['receiving_sms', $tzid, '1234']],
             array_map(static fn (array $l) => [$l['type'], $l['params']['operation_id'] ?? null, $l['params']['code'] ?? null], $logs['data']),
         );
+        // activation: +number, seconds left, order time; rent: digits without +, minutes left, SMS time
+        $param = static fn (int $i, string $key): mixed => $logs['data'][$i]['params'][$key] ?? null;
+        self::assertSame(['+44900000001', 1200, '2026-01-01 00:00:01'], [$param(2, 'number'), $param(2, 'time_left'), $param(2, 'time_start')]);
+        self::assertSame(['7900000002', 1440, '2026-01-01 00:00:03'], [$param(1, 'number'), $param(1, 'time_left'), $param(1, 'time_start')]);
 
         $client->user->clearWebhookUrl();
         self::assertNull($client->user->profile()['webhook_url'] ?? null);
@@ -320,6 +382,7 @@ final class MockOnlineSimTest extends TestCase
         self::assertSame(['balance' => 3.0, 'zbalance' => 1.2, 'income' => 0.0], $client->user->balance());
         $history = $client->user->paymentHistory();
         self::assertSame([], $history['paylist']);
+        self::assertSame([[1 => 'Card'], ['USD' => [5, 10, 20]]], [$history['forms'] ?? null, $history['buttons'] ?? null]);
         self::assertSame([[], 0, 1], [$history['orders']['data'] ?? null, $history['orders']['total'] ?? null, $history['orders']['current_page'] ?? null]);
     }
 
@@ -327,10 +390,17 @@ final class MockOnlineSimTest extends TestCase
     {
         $client = (new MockOnlineSim())->client();
         $uk = $client->free->list();
-        self::assertSame([7, 44], array_column($uk['countries'], 'country'));
+        self::assertSame([44, 7], array_column($uk['countries'], 'country'));
         self::assertSame(['7459608320'], array_map('strval', array_keys($uk['numbers'])));
-        self::assertSame(['7459608320', 44, 2], [$uk['messages']['number'] ?? null, $uk['messages']['country'] ?? null, $uk['messages']['total'] ?? null]);
-        self::assertSame('195895', $uk['messages']['data'][0]['code'] ?? null);
+        self::assertSame(['7459608320', 44, 2, 10], [$uk['messages']['number'] ?? null, $uk['messages']['country'] ?? null, $uk['messages']['total'] ?? null, $uk['messages']['per_page'] ?? null]);
+        self::assertSame(['195895', '2026-01-01T00:00:00.000000Z'], [$uk['messages']['data'][0]['code'] ?? null, $uk['messages']['data'][0]['created_at'] ?? null]);
+        self::assertSame(10, $client->free->list(count: 0)['messages']['per_page']); // clamped to 10..500
+        self::assertSame(500, $client->free->list(count: 9999)['messages']['per_page']);
+        self::assertSame(44, $client->free->list(country: 999)['messages']['country']); // unknown → the first country
+        $raw = json_decode((new MockOnlineSim())->send('GET', 'https://x.test/api/getFreeList', [], null, 1.0)->body, true);
+        self::assertIsArray($raw);
+        self::assertSame([1, null], [$raw['response'] ?? 'missing', array_key_exists('content', $raw) ? $raw['content'] : 'missing']);
+        self::assertIsString($raw['ignore'] ?? null);
         $ru = $client->free->list(country: 7);
         self::assertSame(['51423', '9001234567'], [$ru['messages']['data'][0]['code'] ?? null, $ru['messages']['data'][0]['my_number'] ?? null]);
     }

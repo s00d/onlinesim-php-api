@@ -78,13 +78,13 @@ public function state(bool $messageToCode = true, OrderBy $orderBy = OrderBy::As
 | `msgList` | `bool` | `false` | `msg` is a list of all SMS (`OperationSms[]`). |
 
 Returns `list<Operation>`; `Operation`: `['tzid', 'response', 'number'?, 'service'?, 'country'?, 'sum'?, 'time'?, 'msg'?, 'guard_interval_remaining_seconds'?, …]`.
-`response` is the state: `TZ_INPOOL` (number being assigned), `TZ_NUM_WAIT` (waiting for SMS), `TZ_NUM_ANSWER` (SMS arrived), `TZ_OVER_OK` (finished), `ERROR_NO_ITEMS` (failed). `msg` is absent until the first SMS. The server caches answers for a few seconds.
+`response` is the state (absent when no number could be issued, so read it with `?? null`): `TZ_INPOOL` (number being assigned), `TZ_NUM_WAIT` (waiting for SMS), `TZ_NUM_ANSWER` (SMS arrived), `TZ_OVER_OK` (finished), `ERROR_NO_ITEMS` (failed). `msg` is absent until the first SMS. The server caches answers for a few seconds.
 
 ```php
 use s00d\OnlineSimApi\OrderBy;
 
 foreach ($client->numbers->state(orderBy: OrderBy::Desc) as $op) {
-    echo $op['tzid'], ' ', $op['response'], ' ', $op['msg'] ?? '-', "\n";
+    echo $op['tzid'], ' ', $op['response'] ?? '-', ' ', $op['msg'] ?? '-', "\n";
 }
 ```
 
@@ -98,7 +98,7 @@ public function stateOne(int $tzid, bool $messageToCode = true, bool $msgList = 
 
 ```php
 $op = $client->numbers->stateOne($tzid);
-if ($op['response'] === 'TZ_NUM_ANSWER') {
+if (($op['response'] ?? null) === 'TZ_NUM_ANSWER') {
     echo $op['msg'];
 }
 ```
@@ -122,7 +122,7 @@ public function waitCode(int $tzid, float $interval = 5.0, float $timeout = 600.
 | `since` | `?string` | `null` | Ignore this value (the previous code). |
 | `sleep`, `now` | callables | `usleep`, `hrtime` | `sleep(float $seconds)` and a monotonic `now(): float` in seconds; injectable for tests. |
 
-A transient `TransportError` is retried until the timeout; any `ApiError` is thrown at once.
+Transient errors are retried until the timeout: `TransportError`, and `ApiError` `TRY_AGAIN_LATER` (the HTTP 429 rate limit), `ERROR_UNDEFINED` and `INTERVAL_CONCURRENT_REQUESTS_ERROR`. Any other `ApiError` is thrown at once.
 
 ```php
 $first = $client->numbers->waitCode($tzid, keepOpen: true);
@@ -142,6 +142,8 @@ public function next(int $tzid): bool
 ```php
 $client->numbers->next($tzid);
 ```
+
+Errors: `ApiError` `ERROR_WRONG_TZID` (not an operation of your account), `ERROR_NO_TZID`.
 
 ## close
 
@@ -169,7 +171,7 @@ public function ban(int $tzid): bool
 $client->numbers->ban($tzid);
 ```
 
-Errors: as `close`.
+Errors: as `close`; `ApiError` with code `"0"` when the operation already has an SMS — nothing is changed then.
 
 ## tariffs
 

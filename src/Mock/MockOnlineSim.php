@@ -43,7 +43,7 @@ final class MockOnlineSim implements Transport
      * @param float                           $balance       starting balance, USD
      * @param MockPrices|null                 $prices        number prices, country → service → USD; replaces the defaults
      * @param array<int, MockRentTariff>|null $rentTariffs   rent tariffs, country → `['days' => [days => USD], 'extend' => 1|0]`; replaces the defaults
-     * @param int                             $guardInterval seconds; `> 0`: an operation without SMS cannot be closed (`NO_COMPLETE_TZID`)
+     * @param int                             $guardInterval seconds; `> 0`: an operation without SMS, or an unconfirmed rent without any SMS, cannot be closed (`NO_COMPLETE_TZID`)
      */
     public function __construct(
         string $apiKey = 'mock-key',
@@ -127,7 +127,7 @@ final class MockOnlineSim implements Transport
         $this->state->balance = MockState::toMills($usd);
     }
 
-    /** Total balance, USD, including the part frozen by open operations (as `getBalance` reports it). */
+    /** Total balance, USD, including the part frozen by open operations and unconfirmed rents (as `getBalance` reports it). */
     public function balance(): float
     {
         return MockState::fromMills($this->state->balance);
@@ -169,7 +169,7 @@ final class MockOnlineSim implements Transport
         $this->state->reset();
     }
 
-    /** The transport: log request → failure queue → unknown path 404 → wrong key 456 → handler. */
+    /** The transport: log request → failure queue → unknown path 404 → wrong key 456 / missing key 200 → handler. */
     public function send(string $method, string $url, array $headers, ?string $body, float $timeout): Response
     {
         $parts = parse_url($url);
@@ -194,8 +194,13 @@ final class MockOnlineSim implements Transport
         if ($handler === null) {
             return self::text(404, 'Not Found');
         }
-        if (!in_array($req['path'], Handlers::PUBLIC_PATHS, true) && self::header($headers, 'Authorization') !== "Bearer {$state->apiKey}") {
+        // A wrong key is HTTP 456 (public endpoints check a sent key too); no key at all is HTTP 200.
+        $auth = self::header($headers, 'Authorization');
+        if ($auth !== null && $auth !== "Bearer {$state->apiKey}") {
             return self::json(['response' => 'ERROR_WRONG_KEY'], 456);
+        }
+        if ($auth === null && !in_array($req['path'], Handlers::PUBLIC_PATHS, true)) {
+            return self::json(['response' => 'ERROR_WRONG_KEY']);
         }
 
         return self::json($handler($state, $req));

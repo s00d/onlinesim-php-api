@@ -145,7 +145,7 @@ final class IntegrationTest extends \PHPUnit\Framework\TestCase
         $ids = array_column($client->numbers->state(), 'tzid');
         self::assertContains($tzid, $ids);
         self::assertContains($order['tzid'], $ids);
-        self::assertStringStartsWith('TZ_', $client->numbers->stateOne($tzid)['response']);
+        self::assertStringStartsWith('TZ_', $client->numbers->stateOne($tzid)['response'] ?? '');
 
         // The test driver answers NO_NUMBER to any reject list: proves `reject` is sent.
         try {

@@ -30,6 +30,27 @@ final class UserTest extends TestCase
         self::assertSame(['333'], $profile['number_reject'] ?? null);
     }
 
+    public function testProfileNumberIsIntOrNullCountryStringOrNull(): void
+    {
+        $client = $this->client([['json' => ['response' => '1', 'profile' => ['id' => 1, 'number' => 79001234567, 'country' => 'RU']]]]);
+        $profile = $client->user->profile();
+        self::assertSame([79001234567, 'RU'], [$profile['number'] ?? null, $profile['country'] ?? null]);
+    }
+
+    public function testPaymentHistoryKeepsAPaylistThatArrivesAsAJsonArrayNullableOrderFields(): void
+    {
+        $body = self::fixtureArray('getPaymentHistory');
+        $paylist = [['id' => 0, 'name' => 'Card'], ['id' => 1, 'name' => 'Crypto']];
+        $order = ['id' => 1, 'sum' => '10.00', 'currency' => null, 'form_text' => null, 'stat' => 0, 'created_at' => '2026-06-14 09:12:12'];
+        self::assertIsArray($body['orders']);
+        $body['orders']['data'] = [$order];
+        $body['paylist'] = $paylist;
+        $client = $this->client([['json' => $body]]);
+        $history = $client->user->paymentHistory();
+        self::assertSame($paylist, $history['paylist']);
+        self::assertSame([null, null], [$history['orders']['data'][0]['currency'], $history['orders']['data'][0]['form_text'] ?? null]);
+    }
+
     public function testPaymentHistoryNormalisesTheEmptyPaylist(): void
     {
         $client = $this->client([['json' => self::fixture('getPaymentHistory')]]);

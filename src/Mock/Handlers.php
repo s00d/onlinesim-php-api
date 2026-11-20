@@ -32,14 +32,17 @@ final class Handlers
         44 => ['united_kingdom', 'United Kingdom'],
     ];
 
-    /** Free numbers: country → [name, text, short number → list of [sender, text]]. */
+    /** Free numbers: country → [name, text, short number → list of [sender, text]]. Country 44 first, like the backend. */
     private const FREE = [
-        7 => ['russia', 'Russia', ['9001234567' => [['Telegram', 'Telegram code: 51423']]]],
         44 => ['united_kingdom', 'United Kingdom', ['7459608320' => [
             ['Amazon', 'Amazon: Use 195895 to reset your password.'],
             ['Microsoft', 'Microsoft access code: 2991'],
         ]]],
+        7 => ['russia', 'Russia', ['9001234567' => [['Telegram', 'Telegram code: 51423']]]],
     ];
+
+    /** `ignore` of getFreeList: a note about prohibited services and their ids. */
+    private const FREE_IGNORE = '<p>Messages from these services are not shown:</p><p>1,2,3</p>';
 
     /** @return Handler|null */
     public static function route(string $path): ?\Closure
@@ -90,6 +93,12 @@ final class Handlers
     private static function decimal(int $mills, int $digits = 3): string
     {
         return number_format(MockState::fromMills($mills), $digits, '.', '');
+    }
+
+    /** `YYYY-MM-DDTHH:MM:SS.000000Z`, the ISO-8601 form getFreeList sends. */
+    private static function iso(int $seconds): string
+    {
+        return str_replace(' ', 'T', MockState::stamp($seconds)) . '.000000Z';
     }
 
     /** @return array{string, string} */
@@ -235,7 +244,17 @@ final class Handlers
             return ['response' => 1, 'tzid' => $tzid];
         }
 
-        return ['response' => 1, 'tzid' => $tzid, 'number' => $number, 'country' => $country, 'time' => MockState::OPERATION_TIME, 'service' => $service];
+        return [
+            'response' => 1,
+            'tzid' => $tzid,
+            'number' => $number,
+            'country' => $country,
+            'time' => MockState::OPERATION_TIME,
+            'service' => $service,
+            'title' => $service,
+            'response_text' => 'Waiting for SMS',
+            'guard_interval_remaining_seconds' => $state->guardInterval,
+        ];
     }
 
     /**
@@ -273,15 +292,20 @@ final class Handlers
     private static function setOperationRevise(MockState $state, array $req): array
     {
         $tzid = self::int($req, 'tzid', 0);
+        if ($tzid === 0) {
+            return self::error('ERROR_NO_TZID');
+        }
         $op = $state->operations[$tzid] ?? null;
-        // Always succeeds, even for unknown tzids, like the backend.
-        if ($op !== null && $op['status'] !== 'TZ_OVER_OK') {
+        if ($op === null) {
+            return self::error('ERROR_WRONG_TZID');
+        }
+        if ($op['status'] !== 'TZ_OVER_OK') {
             $op['cursor'] = count($op['messages']);
             $op['status'] = 'TZ_NUM_WAIT';
             $state->operations[$tzid] = $op;
         }
 
-        return ['response' => 1, 'tzid' => $tzid];
+        return ['tzid' => (string) $tzid, 'response' => '1'];
     }
 
     /**
@@ -292,6 +316,9 @@ final class Handlers
     private static function setOperationOk(MockState $state, array $req): array
     {
         $tzid = self::int($req, 'tzid', 0);
+        if ($tzid === 0) {
+            return self::error('ERROR_NO_TZID');
+        }
         $op = $state->operations[$tzid] ?? null;
         if ($op === null || $op['status'] === 'TZ_OVER_OK') {
             return self::error('ERROR_WRONG_TZID');
@@ -358,48 +385,55 @@ final class Handlers
     // ----- rent -----
 
     /**
+     * A rent as the backend sends it. `sum` is a number in getRentNum/extendRentState and a 2-decimal string in
+     * getRentState (`$stringSum`). An unconfirmed rent (`status` 0) waits 20 minutes for its first SMS.
+     *
      * @param MockRent    $rent
      * @param MockRequest $req
      *
      * @return Json
      */
-    private static function rentItem(MockState $state, array $rent, array $req): array
+    private static function rentItem(MockState $state, array $rent, array $req, bool $stringSum = false): array
     {
         $tariff = $state->rentTariffs[$rent['country']] ?? null;
         $extendable = $rent['extension'] && $tariff !== null && $tariff['extend'] === 1;
+        $confirmed = $rent['status'] === 1;
         $start = $rent['tzid'];
+        $minutes = $confirmed ? $rent['days'] * 24 * 60 : MockState::RENT_FIRST_SMS_MINUTES;
         $item = [
-            'status' => 1,
+            'status' => $rent['status'],
             'extension' => $rent['extension'] ? 1 : 0,
             'messages' => array_map(static fn (array $m) => [
                 'id' => $m['id'],
                 'service' => $m['service'],
                 'text' => $m['text'],
-                'code' => $m['code'] ?? '',
+                // A notice about a prohibited sender carries the integer 0, other SMS a string ('' without a code).
+                'code' => $m['service'] === MockState::NOTIFY ? 0 : ($m['code'] ?? ''),
                 'created_at' => $m['created_at'],
             ], array_reverse($rent['messages'])),
             'webhook_url' => $state->webhookUrl,
-            'sum' => self::decimal(MockState::toMills($rent['sum']), 2),
+            'sum' => $stringSum ? self::decimal(MockState::toMills($rent['sum']), 2) : $rent['sum'],
             'country' => $rent['country'],
             'start_time' => MockState::stamp($start),
-            'stop_time' => MockState::stamp($start + $rent['days'] * 86_400),
+            'stop_time' => MockState::stamp($start + $minutes * 60),
             'checked_time' => MockState::stamp($start),
             'number' => $rent['number'],
-            'days_autoextend' => 0,
-            'rent' => 1,
+            'days_autoextend' => $rent['initialDays'],
+            'rent' => $rent['days'],
             'tzid' => $rent['tzid'],
-            'time' => $rent['days'] * 24 * 60,
-            'days' => $rent['days'],
-            'hours' => $rent['days'] * 24,
+            'time' => $minutes,
+            'days' => $confirmed ? $rent['days'] : 0,
+            'hours' => $confirmed ? $rent['days'] * 24 : 0,
             'extend' => $extendable ? $tariff['days'] : [],
-            'checked' => true,
-            'reload' => null,
+            'checked' => $confirmed,
+            'reload' => $rent['country'] === 7 ? 0 : null,
             'day_extend' => $extendable ? ($tariff['days'][1] ?? 0) : 0,
             'm_ext' => false,
             'freeze' => false,
         ];
         if (isset($req['query']['number'])) {
-            $item['time_seconds'] = $rent['days'] * 86_400;
+            $item['time_seconds'] = $minutes * 60;
+            $item['guard_interval_remaining_seconds'] = !$confirmed && $rent['messages'] === [] ? $state->guardInterval : 0;
         }
 
         return $item;
@@ -415,7 +449,7 @@ final class Handlers
         $country = self::int($req, 'country', 7);
         $tariff = $state->rentTariffs[$country] ?? null;
         if ($tariff === null) {
-            return self::error('NO_COUNTRY');
+            return self::error('UNDEFINED_COUNTRY');
         }
         $days = self::int($req, 'days', 1);
         $price = $tariff['days'][$days] ?? null;
@@ -427,12 +461,15 @@ final class Handlers
             return self::error('WARNING_LOW_BALANCE');
         }
         $tzid = $state->nextId();
-        $state->balance -= $cost;
+        // Reserved, not charged: the first SMS that is not `notify` confirms the rent and charges it.
+        $state->frozen += $cost;
         $rent = [
             'tzid' => $tzid,
             'country' => $country,
             'number' => MockState::shortNumber($tzid),
             'days' => $days,
+            'initialDays' => $days,
+            'status' => 0,
             'sum' => (float) $price,
             // `extension` defaults to 1 on the server; `0` makes the rent non-extendable for good.
             'extension' => ($req['query']['extension'] ?? null) !== '0',
@@ -460,7 +497,7 @@ final class Handlers
             $state->poll($tzid);
         }
 
-        return ['response' => 1, 'list' => array_map(static fn (int $tzid) => self::rentItem($state, $state->rents[$tzid], $req), $ids)];
+        return ['response' => 1, 'list' => array_map(static fn (int $tzid) => self::rentItem($state, $state->rents[$tzid], $req, true), $ids)];
     }
 
     /**
@@ -470,19 +507,17 @@ final class Handlers
      */
     private static function extendRentState(MockState $state, array $req): array
     {
+        // Every refusal is TRY_AGAIN_LATER, like the backend: unknown tzid, unconfirmed rent, not extendable, unknown days.
         $tzid = self::int($req, 'tzid', 0);
         $rent = $state->rents[$tzid] ?? null;
-        if ($rent === null) {
-            return self::error('ERROR_WRONG_TZID');
-        }
-        $tariff = $state->rentTariffs[$rent['country']] ?? null;
-        if (!$rent['extension'] || $tariff === null || $tariff['extend'] !== 1) {
+        $tariff = $rent !== null ? ($state->rentTariffs[$rent['country']] ?? null) : null;
+        if ($rent === null || $tariff === null || $rent['status'] !== 1 || !$rent['extension'] || $tariff['extend'] !== 1) {
             return self::error('TRY_AGAIN_LATER');
         }
         $days = self::int($req, 'days', 1);
         $price = $tariff['days'][$days] ?? null;
         if ($price === null) {
-            return self::error('UNDEFINED_DAYS');
+            return self::error('TRY_AGAIN_LATER');
         }
         $cost = MockState::toMills($price);
         if ($state->available() < $cost) {
@@ -504,9 +539,19 @@ final class Handlers
     private static function closeRentNum(MockState $state, array $req): array
     {
         $tzid = self::int($req, 'tzid', 0);
-        if (!isset($state->rents[$tzid])) {
-            return self::error('ERROR_WRONG_TZID');
+        $rent = $state->rents[$tzid] ?? null;
+        if ($rent === null) {
+            return self::error('ERROR_NO_OPERATIONS');
         }
+        if ($rent['status'] === 0) {
+            // `guardInterval` stands in for the backend's first 120 s, during which a rent without any SMS stays open.
+            if ($rent['messages'] === [] && $state->guardInterval > 0) {
+                return self::error('NO_COMPLETE_TZID');
+            }
+            // Unconfirmed (no SMS or only `notify`): the reservation is released.
+            $state->frozen -= MockState::toMills($rent['sum']);
+        }
+        // A confirmed rent closes without a refund.
         unset($state->rents[$tzid], $state->scheduled[$tzid]);
 
         return ['response' => '1'];
@@ -609,11 +654,10 @@ final class Handlers
         ];
     }
 
-    private static function isHttpUrl(string $value): bool
+    /** The backend accepts any `scheme://…` URL. */
+    private static function isUrl(string $value): bool
     {
-        $url = parse_url($value);
-
-        return is_array($url) && in_array(strtolower($url['scheme'] ?? ''), ['http', 'https'], true) && ($url['host'] ?? '') !== '';
+        return preg_match('~^[a-z][a-z0-9+.-]*://\S+$~i', $value) === 1;
     }
 
     /**
@@ -629,7 +673,7 @@ final class Handlers
         }
         if (array_key_exists('webhook_url', $body['profile'])) {
             $url = $body['profile']['webhook_url'];
-            if ($url !== null && (!is_string($url) || !self::isHttpUrl($url))) {
+            if ($url !== null && (!is_string($url) || !self::isUrl($url))) {
                 return ['response' => ['webhook_url' => ['The webhook url must be a valid URL.']]];
             }
             $state->webhookUrl = $url;
@@ -659,8 +703,10 @@ final class Handlers
             'response' => '1',
             'orders' => self::paginate([], self::int($req, 'page', 1), 10, 'getPaymentHistory.php'),
             'paylist' => [],
-            'domains' => [],
+            'domains' => ['onlinesim.io'],
+            'forms' => [1 => 'Card'],
             'currency' => ['USD' => 1],
+            'buttons' => ['USD' => [5, 10, 20]],
         ];
     }
 
@@ -674,6 +720,8 @@ final class Handlers
     private static function getFreeList(MockState $state, array $req): array
     {
         $wanted = self::int($req, 'country', 44);
+        $count = min(500, max(10, self::int($req, 'count', 10)));
+        $page = max(1, self::int($req, 'page', 1));
         $country = isset(self::FREE[$wanted]) ? $wanted : array_key_first(self::FREE);
         [$name, , $list] = self::FREE[$country];
         $numbers = [];
@@ -689,7 +737,7 @@ final class Handlers
                 'text' => $text,
                 'in_number' => $sender,
                 'my_number' => $number,
-                'created_at' => MockState::stamp($i),
+                'created_at' => self::iso($i),
                 'data_humans' => '1 day ago',
                 'code' => MockState::extractCode($text) ?? '-',
             ];
@@ -703,7 +751,9 @@ final class Handlers
             'response' => 1,
             'countries' => $countries,
             'numbers' => $numbers,
-            'messages' => self::paginate($messages, self::int($req, 'page', 1), self::int($req, 'count', 10), 'getFreeList') + ['number' => $number, 'country' => $country],
+            'messages' => self::paginate($messages, $page, $count, 'getFreeList') + ['number' => $number, 'country' => $country],
+            'ignore' => self::FREE_IGNORE,
+            'content' => null,
         ];
     }
 }

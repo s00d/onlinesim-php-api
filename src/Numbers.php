@@ -16,7 +16,7 @@ use s00d\OnlineSimApi\Exception\TransportError;
  * @phpstan-type OperationSms array{service: string, msg?: string, text?: string, code?: string}
  * @phpstan-type Operation array{
  *     tzid: int,
- *     response: 'TZ_INPOOL'|'TZ_NUM_WAIT'|'TZ_NUM_ANSWER'|'TZ_OVER_OK'|'ERROR_NO_ITEMS',
+ *     response?: 'TZ_INPOOL'|'TZ_NUM_WAIT'|'TZ_NUM_ANSWER'|'TZ_OVER_OK'|'ERROR_NO_ITEMS',
  *     number?: string,
  *     service?: string,
  *     country?: int,
@@ -36,6 +36,7 @@ use s00d\OnlineSimApi\Exception\TransportError;
  *     time: int,
  *     service: string,
  *     title?: string,
+ *     response_text?: string,
  *     guard_interval_remaining_seconds?: int,
  * }
  * @phpstan-type ServiceStat array{
@@ -60,6 +61,9 @@ use s00d\OnlineSimApi\Exception\TransportError;
  */
 final class Numbers
 {
+    /** waitCode retries these `ApiError` codes: rate limit (HTTP 429), a transient server error, too many requests. */
+    private const RETRYABLE = ['TRY_AGAIN_LATER', 'ERROR_UNDEFINED', 'INTERVAL_CONCURRENT_REQUESTS_ERROR'];
+
     /** @internal created by `OnlineSim` */
     public function __construct(private readonly Requester $requester)
     {
@@ -157,7 +161,8 @@ final class Numbers
     }
 
     /**
-     * Switch the operation to its next SMS and keep it open.
+     * Switch the operation to its next SMS and keep it open. `ApiError('ERROR_WRONG_TZID')` for a tzid that is not an
+     * operation of the account, `ERROR_NO_TZID` for `0`.
      *
      * @return true
      *
@@ -185,7 +190,8 @@ final class Numbers
     }
 
     /**
-     * Finish the operation and report the number as bad (only before any SMS arrived).
+     * Finish the operation and report the number as bad (only before any SMS arrived). After an SMS the server
+     * answers `"0"` and changes nothing: `ApiError('0')`.
      *
      * @return true
      *
@@ -233,8 +239,9 @@ final class Numbers
      *
      * Polls `stateOne($tzid)` every `$interval` seconds until a code different from `$since` arrives. A finished
      * operation (TZ_OVER_OK, ERROR_NO_ITEMS) without a new code throws `ApiError` with that state as the code;
-     * running out of `$timeout` throws `TimeoutError`. `TransportError` is retried until the timeout; any `ApiError`
-     * is thrown at once.
+     * running out of `$timeout` throws `TimeoutError`. `TransportError` and the transient `ApiError` codes
+     * `TRY_AGAIN_LATER`, `ERROR_UNDEFINED` and `INTERVAL_CONCURRENT_REQUESTS_ERROR` are retried until the timeout;
+     * any other `ApiError` is thrown at once.
      *
      * @param float                       $interval    poll interval, seconds
      * @param float                       $timeout     give up after, seconds
@@ -268,6 +275,10 @@ final class Numbers
                 $op = $this->stateOne($tzid, messageToCode: !$fullMessage);
             } catch (TransportError) {
                 // transient: retried until the timeout
+            } catch (ApiError $e) {
+                if (!in_array($e->errorCode, self::RETRYABLE, true)) {
+                    throw $e;
+                }
             }
 
             if ($op !== null) {
@@ -277,8 +288,10 @@ final class Numbers
 
                     return $msg;
                 }
-                if ($op['response'] === 'TZ_OVER_OK' || $op['response'] === 'ERROR_NO_ITEMS') {
-                    throw new ApiError($op['response']);
+                // `response` is absent while no number could be issued yet: keep polling.
+                $status = $op['response'] ?? null;
+                if ($status === 'TZ_OVER_OK' || $status === 'ERROR_NO_ITEMS') {
+                    throw new ApiError($status);
                 }
             }
 

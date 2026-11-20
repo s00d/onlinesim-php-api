@@ -60,10 +60,29 @@ final class ClientTest extends TestCase
         self::assertSame('No numbers available for this service right now', $error->getMessage());
     }
 
-    public function testMapsNoNumberForForwardToNoNumberError(): void
+    public function testMapsHttp429TryAgainLaterRateLimitToApiErrorNotTransportError(): void
     {
-        $client = $this->client([['json' => ['response' => 'NO_NUMBER_FOR_FORWARD']]]);
-        self::assertInstanceOf(NoNumberError::class, $this->caught(static fn () => $client->numbers->get('google')));
+        $client = $this->client([['status' => 429, 'json' => ['response' => 'TRY_AGAIN_LATER']]]);
+        $error = $this->caught(static fn () => $client->numbers->state());
+        self::assertInstanceOf(ApiError::class, $error); // so not a TransportError
+        self::assertSame('TRY_AGAIN_LATER', $error->errorCode);
+    }
+
+    public function testMapsAMissingKeyHttp200WrongKeyToApiError(): void
+    {
+        $client = $this->client([['json' => ['response' => 'ERROR_WRONG_KEY']]], apiKey: null);
+        $error = $this->caught(static fn () => $client->user->balance());
+        self::assertInstanceOf(ApiError::class, $error);
+        self::assertSame(['ERROR_WRONG_KEY', 'Wrong or missing API key'], [$error->errorCode, $error->getMessage()]);
+    }
+
+    public function testOnlyNoNumberIsNoNumberErrorForwardNotSupportedIsAPlainApiError(): void
+    {
+        $client = $this->client([['json' => ['response' => 'FORWARD_NOT_SUPPORTED']]]);
+        $error = $this->caught(static fn () => $client->numbers->get('google'));
+        self::assertInstanceOf(ApiError::class, $error);
+        self::assertNotInstanceOf(NoNumberError::class, $error);
+        self::assertSame('Number forwarding is no longer available', $error->getMessage());
     }
 
     public function testMapsHttp456WrongKeyToApiErrorNotTransportError(): void
@@ -72,7 +91,7 @@ final class ClientTest extends TestCase
         $error = $this->caught(static fn () => $client->user->balance());
         self::assertInstanceOf(ApiError::class, $error);
         self::assertSame('ERROR_WRONG_KEY', $error->errorCode);
-        self::assertSame('Wrong API key', $error->getMessage());
+        self::assertSame('Wrong or missing API key', $error->getMessage());
     }
 
     public function testPrefersTheServerMessageButNotWhenItOnlyEchoesTheCode(): void

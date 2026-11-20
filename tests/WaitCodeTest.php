@@ -122,7 +122,52 @@ final class WaitCodeTest extends TestCase
         self::assertSame(['sleep 5'], $this->log);
     }
 
-    public function testRaisesAnyApiErrorAtOnce(): void
+    /** @return iterable<string, array{string}> */
+    public static function retryable(): iterable
+    {
+        yield 'TRY_AGAIN_LATER' => ['TRY_AGAIN_LATER'];
+        yield 'ERROR_UNDEFINED' => ['ERROR_UNDEFINED'];
+        yield 'INTERVAL_CONCURRENT_REQUESTS_ERROR' => ['INTERVAL_CONCURRENT_REQUESTS_ERROR'];
+    }
+
+    #[DataProvider('retryable')]
+    public function testRetriesATransientApiErrorUntilTheCodeArrives(string $code): void
+    {
+        $client = $this->operations([new ApiError($code), ['msg' => '42']], [['json' => ['response' => 1]]]);
+        self::assertSame('42', $client->numbers->waitCode(7, sleep: $this->sleep(...), now: $this->now(...)));
+        self::assertSame(['getState.php code=1', 'getState.php code=1', 'setOperationOk.php tzid=7'], $this->requests());
+        self::assertSame(['sleep 5'], $this->log);
+    }
+
+    public function testRetriesHttp429TryAgainLaterFromTheWire(): void
+    {
+        $client = $this->operations([], [
+            ['status' => 429, 'json' => ['response' => 'TRY_AGAIN_LATER']],
+            ['json' => [['tzid' => 7, 'response' => 'TZ_NUM_ANSWER', 'msg' => '42']]],
+            ['json' => ['response' => 1]],
+        ]);
+        self::assertSame('42', $client->numbers->waitCode(7, sleep: $this->sleep(...), now: $this->now(...)));
+    }
+
+    public function testARetryableApiErrorStillEndsInTimeoutErrorAtTheDeadline(): void
+    {
+        $client = $this->operations(array_fill(0, 3, new ApiError('TRY_AGAIN_LATER')));
+        $error = $this->caught(fn () => $client->numbers->waitCode(7, interval: 5.0, timeout: 10.0, sleep: $this->sleep(...), now: $this->now(...)));
+        self::assertInstanceOf(TimeoutError::class, $error);
+        self::assertCount(3, $this->transport->calls);
+    }
+
+    public function testAnOperationWithoutResponseKeepsPolling(): void
+    {
+        $client = $this->client([
+            ['json' => [['tzid' => 7, 'service' => 'google']]],
+            ['json' => [['tzid' => 7, 'response' => 'TZ_NUM_ANSWER', 'msg' => '77']]],
+            ['json' => ['response' => 1]],
+        ]);
+        self::assertSame('77', $client->numbers->waitCode(7, sleep: $this->sleep(...), now: $this->now(...)));
+    }
+
+    public function testRaisesAnyOtherApiErrorAtOnce(): void
     {
         $client = $this->client([['json' => ['response' => 'ERROR_NO_OPERATIONS']]]);
         $error = $this->caught(fn () => $client->numbers->waitCode(7, sleep: $this->sleep(...), now: $this->now(...)));

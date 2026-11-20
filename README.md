@@ -16,7 +16,7 @@ use s00d\OnlineSimApi\OnlineSim;
 $client = new OnlineSim(apiKey: getenv('ONLINESIM_KEY') ?: null);
 
 $balance = $client->user->balance();
-echo 'available: ', $balance['balance'] - $balance['zbalance'], " USD\n";
+echo 'available: ', $balance['balance'] - max($balance['zbalance'], 0), " USD\n";
 
 $order = $client->numbers->getWithNumber('google', 44);
 echo "enter {$order['number']} in the app\n";

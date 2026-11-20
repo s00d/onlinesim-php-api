@@ -17,6 +17,13 @@ final class FreeTest extends TestCase
         self::assertSame('195895', $list['messages']['data'][0]['code'] ?? null);
     }
 
+    public function testListAcceptsNullCountryTextAndCountryOriginal(): void
+    {
+        $country = ['country' => 999, 'country_text' => null, 'country_original' => null];
+        $client = $this->client([['json' => ['response' => 1, 'countries' => [$country], 'numbers' => [], 'messages' => ['data' => []]]]]);
+        self::assertSame([$country], $client->free->list()['countries']);
+    }
+
     public function testListNormalisesEmptyNumbers(): void
     {
         $client = $this->client([['json' => ['response' => 1, 'countries' => [], 'numbers' => [], 'messages' => ['data' => []]]]]);

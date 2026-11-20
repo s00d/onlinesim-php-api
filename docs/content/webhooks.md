@@ -36,9 +36,9 @@ echo 'ok';
 | `operation_id` | `?int` | `tzid` of the operation or rent. |
 | `user_id` | `?int` | Account id. |
 | `country_code` | `?int` | Country code of the number. |
-| `number` | `?string` | The number, e.g. `+79001234567`. |
+| `number` | `?string` | Numbers: `+` and the full number (`+79001234567`), or `hidden`. Rent: the full number in digits without `+` (`79001234567`). |
 | `sender` | `?string` | Sender of the SMS, e.g. `VK`. |
 | `message` | `?string` | Full SMS text. |
-| `code` | `?string` | Code extracted from the SMS. |
-| `time_start` | `?string` | Start of the operation. |
-| `time_left` | `?int` | Time left. |
+| `code` | `?string` | Code extracted from the SMS; `''` when none was found. |
+| `time_start` | `?string` | Numbers: when the operation was ordered. Rent: when the SMS arrived. `YYYY-MM-DD HH:MM:SS`. |
+| `time_left` | `?int` | Time left: seconds for numbers, minutes for rent. |
